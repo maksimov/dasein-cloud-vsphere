@@ -1169,10 +1169,17 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
             // second add same products but augmented with the resource pool info, ordered by pool name
             for( org.dasein.cloud.dc.ResourcePool pool : rps ) {
                 for( VirtualMachineProduct product : jsonProducts ) {
-                    product.setName("Pool " + pool.getName() + "/" + product.getName());
-                    product.setProviderProductId(pool.getProvideResourcePoolId() + ":" + product.getProviderProductId());
+                    VirtualMachineProduct tmp = new VirtualMachineProduct();
+                    tmp.setName("Pool " + pool.getName() + "/" + product.getName());
+                    tmp.setProviderProductId(pool.getProvideResourcePoolId() + ":" + product.getProviderProductId());
+                    tmp.setRootVolumeSize(product.getRootVolumeSize());
+                    tmp.setCpuCount(product.getCpuCount());
+                    tmp.setDescription(product.getDescription());
+                    tmp.setRamSize(product.getRamSize());
+                    tmp.setStandardHourlyRate(product.getStandardHourlyRate());
+
                     if( options == null || options.matches(product) ) {
-                        results.add(product);
+                        results.add(tmp);
                     }
                 }
             }
