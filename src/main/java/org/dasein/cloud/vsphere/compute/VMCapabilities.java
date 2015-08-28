@@ -1,212 +1,213 @@
-/**
- * Copyright (C) 2010-2015 Dell, Inc
- *
- * ====================================================================
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * ====================================================================
- */
-
 package org.dasein.cloud.vsphere.compute;
 
-import org.dasein.cloud.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Locale;
+
+import javax.annotation.Nonnull;
+
+import org.dasein.cloud.AbstractCapabilities;
+import org.dasein.cloud.CloudException;
+import org.dasein.cloud.InternalException;
+import org.dasein.cloud.Requirement;
+import org.dasein.cloud.VisibleScope;
 import org.dasein.cloud.compute.Architecture;
 import org.dasein.cloud.compute.ImageClass;
 import org.dasein.cloud.compute.Platform;
-import org.dasein.cloud.compute.VirtualMachineCapabilities;
 import org.dasein.cloud.compute.VMScalingCapabilities;
+import org.dasein.cloud.compute.VirtualMachineCapabilities;
 import org.dasein.cloud.compute.VmState;
 import org.dasein.cloud.util.NamingConstraints;
-import org.dasein.cloud.vsphere.PrivateCloud;
+import org.dasein.cloud.vsphere.Vsphere;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.*;
+public class VMCapabilities extends AbstractCapabilities<Vsphere> implements VirtualMachineCapabilities {
 
-/**
- * Describes the capabilities of VSphere with respect to Dasein virtual machine operations.
- * <p>Created by Danielle Mayne: 4/03/14 15:27 PM</p>
- * @author Danielle Mayne
- * @version 2014.03 initial version
- * @since 2014.03
- */
-public class VMCapabilities extends AbstractCapabilities<PrivateCloud> implements VirtualMachineCapabilities{
-    public VMCapabilities(@Nonnull PrivateCloud provider) {
+    public VMCapabilities(Vsphere provider) {
         super(provider);
     }
 
     @Override
-    public boolean canAlter(@Nonnull VmState fromState) throws CloudException, InternalException {
-        return true;
-    }
-
-    @Override
-    public boolean canClone(@Nonnull VmState fromState) throws CloudException, InternalException {
-        return true;
-    }
-
-    @Override
-    public boolean canPause(@Nonnull VmState fromState) throws CloudException, InternalException {
+    public boolean canAlter(VmState fromState) throws CloudException, InternalException {
+        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
-    public boolean canReboot(@Nonnull VmState fromState) throws CloudException, InternalException {
-        return fromState.equals(VmState.RUNNING);
+    public boolean canClone(VmState fromState) throws CloudException, InternalException {
+        // TODO Auto-generated method stub
+        return false;
     }
 
     @Override
-    public boolean canResume(@Nonnull VmState fromState) throws CloudException, InternalException {
-        return !fromState.equals(VmState.RUNNING);
+    public boolean canPause(VmState fromState) throws CloudException, InternalException {
+        // TODO Auto-generated method stub
+        return false;
     }
 
     @Override
-    public boolean canStart(@Nonnull VmState fromState) throws CloudException, InternalException {
-        return !fromState.equals(VmState.RUNNING);
+    public boolean canReboot(VmState fromState) throws CloudException, InternalException {
+        // TODO Auto-generated method stub
+        return false;
     }
 
     @Override
-    public boolean canStop(@Nonnull VmState fromState) throws CloudException, InternalException {
-        return !fromState.equals(VmState.STOPPED);
+    public boolean canResume(VmState fromState) throws CloudException, InternalException {
+        // TODO Auto-generated method stub
+        return false;
     }
 
     @Override
-    public boolean canSuspend(@Nonnull VmState fromState) throws CloudException, InternalException {
-        return !fromState.equals(VmState.SUSPENDED);
+    public boolean canStart(VmState fromState) throws CloudException, InternalException {
+        // TODO Auto-generated method stub
+        return false;
     }
 
     @Override
-    public boolean canTerminate(@Nonnull VmState fromState) throws CloudException, InternalException {
-        return !fromState.equals(VmState.TERMINATED);
+    public boolean canStop(VmState fromState) throws CloudException, InternalException {
+        // TODO Auto-generated method stub
+        return false;
     }
 
     @Override
-    public boolean canUnpause(@Nonnull VmState fromState) throws CloudException, InternalException {
+    public boolean canSuspend(VmState fromState) throws CloudException, InternalException {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
+    @Override
+    public boolean canTerminate(VmState fromState) throws CloudException, InternalException {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
+    @Override
+    public boolean canUnpause(VmState fromState) throws CloudException, InternalException {
+        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public int getMaximumVirtualMachineCount() throws CloudException, InternalException {
-        return -1;
-    }
-
-    @Override
-    public int getCostFactor(@Nonnull VmState state) throws CloudException, InternalException {
+        // TODO Auto-generated method stub
         return 0;
     }
 
-    @Nonnull
     @Override
-    public String getProviderTermForVirtualMachine(@Nonnull Locale locale) throws CloudException, InternalException {
-        return "server";
+    public int getCostFactor(VmState state) throws CloudException, InternalException {
+        // TODO Auto-generated method stub
+        return 0;
     }
 
-    @Nullable
+    @Override
+    public String getProviderTermForVirtualMachine(Locale locale) throws CloudException, InternalException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
     @Override
     public VMScalingCapabilities getVerticalScalingCapabilities() throws CloudException, InternalException {
-        return VMScalingCapabilities.getInstance(false,false,true);
+        // TODO Auto-generated method stub
+        return null;
     }
 
-    @Nonnull
     @Override
     public NamingConstraints getVirtualMachineNamingConstraints() throws CloudException, InternalException {
-        return NamingConstraints.getAlphaNumeric(1, 30).constrainedBy(new char[] {'-'}).lowerCaseOnly();
+        // TODO Auto-generated method stub
+        return null;
     }
 
-    @Nullable
     @Override
     public VisibleScope getVirtualMachineVisibleScope() {
+        // TODO Auto-generated method stub
         return null;
     }
 
-    @Nullable @Override public VisibleScope getVirtualMachineProductVisibleScope() {
+    @Override
+    public VisibleScope getVirtualMachineProductVisibleScope() {
+        // TODO Auto-generated method stub
         return null;
     }
 
-    @Nonnull
     @Override
     public Requirement identifyDataCenterLaunchRequirement() throws CloudException, InternalException {
-        return Requirement.REQUIRED;
+        // TODO Auto-generated method stub
+        return null;
     }
 
-    @Nonnull
     @Override
-    public Requirement identifyImageRequirement(@Nonnull ImageClass cls) throws CloudException, InternalException {
-        return (cls.equals(ImageClass.MACHINE) ? Requirement.REQUIRED : Requirement.NONE);
+    public Requirement identifyImageRequirement(ImageClass cls) throws CloudException, InternalException {
+        // TODO Auto-generated method stub
+        return null;
     }
 
-    @Nonnull
     @Override
     public Requirement identifyPasswordRequirement(Platform platform) throws CloudException, InternalException {
-        return Requirement.REQUIRED;
+        // TODO Auto-generated method stub
+        return null;
     }
 
-    @Nonnull
     @Override
     public Requirement identifyRootVolumeRequirement() throws CloudException, InternalException {
-        return Requirement.NONE;
+        // TODO Auto-generated method stub
+        return null;
     }
 
-    @Nonnull
     @Override
     public Requirement identifyShellKeyRequirement(Platform platform) throws CloudException, InternalException {
-        return Requirement.NONE;
+        // TODO Auto-generated method stub
+        return null;
     }
 
-    @Nonnull
     @Override
     public Requirement identifyStaticIPRequirement() throws CloudException, InternalException {
-        return Requirement.OPTIONAL;
+        // TODO Auto-generated method stub
+        return null;
     }
 
-    @Nonnull
     @Override
     public Requirement identifySubnetRequirement() throws CloudException, InternalException {
-        return Requirement.NONE;
+        // TODO Auto-generated method stub
+        return null;
     }
 
-    @Nonnull
     @Override
     public Requirement identifyVlanRequirement() throws CloudException, InternalException {
-        return Requirement.OPTIONAL;
+        // TODO Auto-generated method stub
+        return null;
     }
 
     @Override
     public boolean isAPITerminationPreventable() throws CloudException, InternalException {
+        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean isBasicAnalyticsSupported() throws CloudException, InternalException {
+        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean isExtendedAnalyticsSupported() throws CloudException, InternalException {
+        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean isUserDataSupported() throws CloudException, InternalException {
+        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean isUserDefinedPrivateIPSupported() throws CloudException, InternalException {
-        return true;
+        // TODO Auto-generated method stub
+        return false;
     }
 
     private transient volatile Collection<Architecture> architectures;
-
     @Override
     public @Nonnull Iterable<Architecture> listSupportedArchitectures() throws InternalException, CloudException {
         if( architectures == null ) {
@@ -216,69 +217,88 @@ public class VMCapabilities extends AbstractCapabilities<PrivateCloud> implement
         }
         return architectures;
     }
-
-    @Override
-    public boolean isVMProductDCConstrained() throws InternalException, CloudException {return false;}
-
-    @Override
-    public boolean supportsCloudStoredShellKey() throws InternalException, CloudException {return false;}
-
     @Override
     public boolean supportsSpotVirtualMachines() throws InternalException, CloudException {
+        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean supportsClientRequestToken() throws InternalException, CloudException {
+        // TODO Auto-generated method stub
         return false;
     }
 
+    @Override
+    public boolean supportsCloudStoredShellKey() throws InternalException, CloudException {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
+    @Override
+    public boolean isVMProductDCConstrained() throws InternalException, CloudException {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
+    @Override
     public boolean supportsAlterVM() {
-        return true;
+        // TODO Auto-generated method stub
+        return false;
     }
 
     @Override
     public boolean supportsClone() {
-        return true;
+        // TODO Auto-generated method stub
+        return false;
     }
 
     @Override
     public boolean supportsPause() {
+        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean supportsReboot() {
-        return true;
+        // TODO Auto-generated method stub
+        return false;
     }
 
     @Override
     public boolean supportsResume() {
-        return true;
+        // TODO Auto-generated method stub
+        return false;
     }
 
     @Override
     public boolean supportsStart() {
-        return true;
+        // TODO Auto-generated method stub
+        return false;
     }
 
     @Override
     public boolean supportsStop() {
-        return true;
+        // TODO Auto-generated method stub
+        return false;
     }
 
     @Override
     public boolean supportsSuspend() {
-        return true;
+        // TODO Auto-generated method stub
+        return false;
     }
 
     @Override
     public boolean supportsTerminate() {
-        return true;
+        // TODO Auto-generated method stub
+        return false;
     }
 
     @Override
     public boolean supportsUnPause() {
+        // TODO Auto-generated method stub
         return false;
     }
+
 }
