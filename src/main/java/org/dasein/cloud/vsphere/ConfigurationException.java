@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2010-2015 Dell, Inc
+ * Copyright (C) 2012-2013 Dell, Inc.
+ * See annotations for authorship information
  *
  * ====================================================================
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,26 +17,25 @@
  * ====================================================================
  */
 
-package org.dasein.cloud.vsphere.network;
+package org.dasein.cloud.vsphere;
 
-import org.dasein.cloud.network.AbstractNetworkServices;
-import org.dasein.cloud.network.VLANSupport;
-import org.dasein.cloud.vsphere.PrivateCloud;
+import org.dasein.cloud.CloudException;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
-public class VMwareNetworkServices extends AbstractNetworkServices<PrivateCloud> {
-    public VMwareNetworkServices(@Nonnull PrivateCloud cloud) { super(cloud); }
-    
-    public @Nullable StaticIp getIpAddressSupport() {
-        return null;
-        //return new StaticIp(getProvider());
+/**
+ * An error in configuring MyCloud's context in some manner.
+ * <p>Created by George Reese: 12/06/2012 9:44 AM</p>
+ * @author George Reese
+ * @version 2013.1 initial version
+ * @since 2013.1
+ */
+public class ConfigurationException extends CloudException {
+    public ConfigurationException(@Nonnull String message) {
+        super(message);
     }
 
-    @Nullable
-    @Override
-    public VLANSupport getVlanSupport() {
-        return new VSphereNetwork(getProvider());
+    public ConfigurationException(@Nonnull Throwable cause) {
+        super(cause);
     }
 }

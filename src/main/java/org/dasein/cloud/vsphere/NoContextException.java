@@ -1,6 +1,6 @@
-
 /**
- * Copyright (C) 2010-2015 Dell, Inc
+ * Copyright (C) 2012-2013 Dell, Inc.
+ * See annotations for authorship information
  *
  * ====================================================================
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +19,14 @@
 
 package org.dasein.cloud.vsphere;
 
-import org.dasein.cloud.test.GlobalTestSuite;
-
-public class TestSuite extends GlobalTestSuite {
+/**
+ * Simple error representing a failure to set up a configuration.
+ * <p>Created by George Reese: 12/06/2012 9:44 AM</p>
+ * @author George Reese
+ * @version 2013.01 initial version
+ * @since 2013.01
+ */
+public class NoContextException extends ConfigurationException {
+    public NoContextException() { super("No context was set for this request"); }
 }
+
