@@ -20,6 +20,7 @@
 package org.dasein.cloud.vsphere;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,6 +49,7 @@ import com.vmware.vim25.RetrieveResult;
 import com.vmware.vim25.RuntimeFaultFaultMsg;
 import com.vmware.vim25.ServiceContent;
 import com.vmware.vim25.TraversalSpec;
+import com.vmware.vim25.UserSession;
 import com.vmware.vim25.VimPortType;
 import com.vmware.vim25.VimService;
 
@@ -64,32 +66,40 @@ import javax.net.ssl.SSLSession;
  * @version 2013.01 initial version
  * @since 2013.01
  */
- public class Vsphere extends AbstractCloud {
-     private String username;
-     private String password;
-     private int sessionTimeout = 0;
-     private VimPortType vimPortType;
-     private ServiceContent serviceContent;
+public class Vsphere extends AbstractCloud {
+    private int sessionTimeout = 0;
+    private VimPortType vimPortType;
+    private ServiceContent serviceContent;
+    private String vimHostname;
+    private UserSession userSession;
 
-     public VimPortType getVimPortType() {
-         return vimPortType;
-     }
+    public VimPortType getVimPortType() {
+        return vimPortType;
+    }
 
-     public VimPortType getVimPort() {
-         return vimPortType;
-     }
+    public VimPortType getVimPort() {
+        return vimPortType;
+    }
 
-     public ServiceContent getServiceContent() {
-         return serviceContent;
-     }
+    public ServiceContent getServiceContent() {
+        return serviceContent;
+    }
 
-     public ServiceContent getVimServiceInstanceReference() {
-         return serviceContent;
-     }
+    public ServiceContent getVimServiceInstanceReference() {
+        return serviceContent;
+    }
 
-     static private final Logger logger = getLogger(Vsphere.class);
+    public String getVimHostname() {
+        return vimHostname;
+    }
 
-     static private @Nonnull String getLastItem(@Nonnull String name) {
+    public UserSession getUserSession() {
+        return userSession;
+    }
+
+    static private final Logger log = getLogger(Vsphere.class);
+
+    static private @Nonnull String getLastItem(@Nonnull String name) {
         int idx = name.lastIndexOf('.');
 
         if( idx < 0 ) {
@@ -137,6 +147,13 @@ import javax.net.ssl.SSLSession;
          );
     }
 
+    public void disconnect() {
+        try {
+            getVimPort().logout(serviceContent.getSessionManager());
+        } catch ( RuntimeFaultFaultMsg e ) {
+            log.warn("While logging out recieved: " + e);
+        }
+    }
 
     public @Nonnull VimService getServiceInstance() throws CloudException, InternalException {
         // TODO add caching
@@ -158,6 +175,8 @@ import javax.net.ssl.SSLSession;
             vimPortType = vimService.getVimPort();
             Map<String, Object> ctxt = ((BindingProvider) vimPortType).getRequestContext();
 
+            vimHostname = new URI(ctx.getEndpoint()).getHost();
+
             ctxt.put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, ctx.getEndpoint());
             ctxt.put(BindingProvider.SESSION_MAINTAIN_PROPERTY, true);
 
@@ -167,6 +186,8 @@ import javax.net.ssl.SSLSession;
         }
 
         List<ContextRequirements.Field> fields = getContextRequirements().getConfigurableValues();
+        String username = null;
+        String password = null;
         try  {
             for (ContextRequirements.Field field : fields ) {
                 if (field.type.equals(ContextRequirements.FieldType.KEYPAIR)){
@@ -180,7 +201,7 @@ import javax.net.ssl.SSLSession;
         }
 
         try {
-            vimPortType.login(serviceContent.getSessionManager(), username, password, null);
+            userSession = vimPortType.login(serviceContent.getSessionManager(), username, password, null);
         } catch (Exception e) {
             throw new CloudException(e.getMessage());
         }
@@ -209,14 +230,14 @@ import javax.net.ssl.SSLSession;
     
     @Override
     public @Nullable String testContext() {
-        if( logger.isTraceEnabled() ) {
-            logger.trace("ENTER - " + Vsphere.class.getName() + ".testContext()");
+        if( log.isTraceEnabled() ) {
+            log.trace("ENTER - " + Vsphere.class.getName() + ".testContext()");
         }
         try {
             ProviderContext ctx = getContext();
 
             if( ctx == null ) {
-                logger.warn("No context was provided for testing");
+                log.warn("No context was provided for testing");
                 return null;
             }
             
@@ -233,16 +254,16 @@ import javax.net.ssl.SSLSession;
                 return ctx.getAccountNumber();
             }
             catch( Throwable t ) {
-                logger.error("testContext(): Failed to test vSphere context: " + t.getMessage());
-                if( logger.isTraceEnabled() ) {
+                log.error("testContext(): Failed to test vSphere context: " + t.getMessage());
+                if( log.isTraceEnabled() ) {
                     t.printStackTrace();
                 }
                 return null;
             }
         }
         finally {
-            if( logger.isTraceEnabled() ) {
-                logger.trace("EXIT - " + Vsphere.class.getName() + ".textContext()");
+            if( log.isTraceEnabled() ) {
+                log.trace("EXIT - " + Vsphere.class.getName() + ".textContext()");
             }
         }
     }

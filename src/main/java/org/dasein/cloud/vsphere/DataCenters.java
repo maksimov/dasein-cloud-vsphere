@@ -33,6 +33,7 @@ import org.dasein.cloud.dc.StoragePool;
 import org.dasein.cloud.util.APITrace;
 import org.dasein.cloud.util.Cache;
 import org.dasein.cloud.util.CacheLevel;
+import org.dasein.cloud.vsphere.capabilities.VsphereDataCenterCapabilities;
 import org.dasein.util.uom.time.Day;
 import org.dasein.util.uom.time.Hour;
 import org.dasein.util.uom.time.TimePeriod;
@@ -86,12 +87,12 @@ public class DataCenters implements DataCenterServices {
 
     @Override
     public @Nonnull String getProviderTermForDataCenter(@Nonnull Locale locale) {
-        return "data center";
+        return getCapabilities().getProviderTermForDataCenter(locale);
     }
 
     @Override
     public @Nonnull String getProviderTermForRegion(@Nonnull Locale locale) {
-        return "region";
+        return getCapabilities().getProviderTermForRegion(locale);
     }
 
     @Override
@@ -269,12 +270,9 @@ public class DataCenters implements DataCenterServices {
         return null;
     }
 
-
-    
     @Override
-    public DataCenterCapabilities getCapabilities() throws InternalException, CloudException {
-        // TODO Auto-generated method stub
-        return null;
+    public DataCenterCapabilities getCapabilities() {
+        return new VsphereDataCenterCapabilities(provider);
     }
 
     @Override

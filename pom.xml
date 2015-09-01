@@ -2,8 +2,8 @@
   <modelVersion>4.0.0</modelVersion>
   
   <groupId>org.dasein</groupId>
-  <artifactId>dasein-cloud-vsphere-new</artifactId>
-  <version>2013.04-SNAPSHOT</version>
+  <artifactId>dasein-cloud-vsphere</artifactId>
+  <version>2015.06-SNAPSHOT</version>
   
   <name>Dasein Cloud Vsphere</name>
   <description>
@@ -44,7 +44,7 @@
     <dependency>
         <groupId>org.dasein</groupId>
         <artifactId>dasein-cloud-core</artifactId>
-        <version>2015.06.2-SNAPSHOT</version>
+        <version>2015.06.1</version>
     </dependency>
     <dependency>
         <groupId>org.dasein</groupId>
@@ -70,7 +70,7 @@
           <artifactId>vim</artifactId>
           <version>25</version>
           <scope>system</scope>
-          <systemPath>/Users/uwnin/Documents/workspace/vSphere-SDK/vsphere-ws/java/JAXWS/lib/vim25.jar</systemPath>
+          <systemPath>/Users/uwnin/Documents/workspace/vSphere-SDK-6.0/vsphere-ws/java/JAXWS/lib/vim25.jar</systemPath>
       </dependency>
       <dependency>
           <groupId>dom4j</groupId>
@@ -96,7 +96,7 @@
       <dependency>
           <groupId>org.dasein</groupId>
           <artifactId>dasein-cloud-test</artifactId>
-          <version>2015.09.1-SNAPSHOT</version>
+          <version>2015.06.1</version>
           <scope>test</scope>
       </dependency>
       <dependency>
