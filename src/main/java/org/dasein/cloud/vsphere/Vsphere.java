@@ -68,34 +68,35 @@ import javax.net.ssl.SSLSession;
  */
 public class Vsphere extends AbstractCloud {
     private int sessionTimeout = 0;
-    private VimPortType vimPortType;
-    private ServiceContent serviceContent;
+    //private VimPortType vimPortType;
+    //private ServiceContent serviceContent;
     private String vimHostname;
-    private UserSession userSession;
+    private VsphereConnection vsphereConnection;
+    //private UserSession userSession;
 
-    public VimPortType getVimPortType() {
-        return vimPortType;
-    }
+    //public VimPortType getVimPortType() {
+    //    return vimPortType;
+    //}
 
-    public VimPortType getVimPort() {
-        return vimPortType;
-    }
+    //public VimPortType getVimPort() {
+    //    return vimPortType;
+    //}
 
-    public ServiceContent getServiceContent() {
-        return serviceContent;
-    }
+    //public ServiceContent getServiceContent() {
+    //    return serviceContent;
+    //}
 
-    public ServiceContent getVimServiceInstanceReference() {
-        return serviceContent;
-    }
+    //public ServiceContent getVimServiceInstanceReference() {
+    //    return serviceContent;
+    //}
 
     public String getVimHostname() {
         return vimHostname;
     }
 
-    public UserSession getUserSession() {
-        return userSession;
-    }
+    //public UserSession getUserSession() {
+    //    return userSession;
+    //}
 
     static private final Logger log = getLogger(Vsphere.class);
 
@@ -127,7 +128,9 @@ public class Vsphere extends AbstractCloud {
         return Logger.getLogger("dasein.cloud.skeleton.wire." + getLastItem(cls.getPackage().getName()) + "." + getLastItem(cls.getName()));
     }
 
-    public Vsphere() { }
+    public Vsphere() { 
+        System.out.println("CREATED Vsphere extends AbstractCloud");
+    }
 
     @Override
     public @Nonnull String getCloudName() {
@@ -147,19 +150,15 @@ public class Vsphere extends AbstractCloud {
          );
     }
 
-    public void disconnect() {
-        try {
-            getVimPort().logout(serviceContent.getSessionManager());
-        } catch ( RuntimeFaultFaultMsg e ) {
-            log.warn("While logging out recieved: " + e);
-        }
-    }
-
-    public @Nonnull VimService getServiceInstance() throws CloudException, InternalException {
-        // TODO add caching
+    public @Nonnull VsphereConnection getServiceInstance() throws CloudException, InternalException {
+        //
+        // TODO ASAP! add caching
+        //
         ProviderContext ctx = getContext();
-
+        ServiceContent serviceContent =  null;
         VimService vimService = null;
+        VimPortType vimPortType = null;
+        UserSession userSession = null;
         try {
             SSLContext sc = SSLContext.getInstance("SSL");
             sc.getServerSessionContext().setSessionTimeout(sessionTimeout);
@@ -175,7 +174,7 @@ public class Vsphere extends AbstractCloud {
             vimPortType = vimService.getVimPort();
             Map<String, Object> ctxt = ((BindingProvider) vimPortType).getRequestContext();
 
-            vimHostname = new URI(ctx.getEndpoint()).getHost();
+            //vimHostname = new URI(ctx.getEndpoint()).getHost();
 
             ctxt.put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, ctx.getEndpoint());
             ctxt.put(BindingProvider.SESSION_MAINTAIN_PROPERTY, true);
@@ -206,16 +205,33 @@ public class Vsphere extends AbstractCloud {
             throw new CloudException(e.getMessage());
         }
 
-        return vimService;
+        return new VsphereConnection(vimService, vimPortType, userSession, serviceContent);
     }
 
     @Override
     public @Nonnull VsphereCompute getComputeServices() {
+        // Still does not feel quite right...
+        try {
+            vsphereConnection = getServiceInstance();
+        } catch ( CloudException e ) {
+            // what to do here?
+        } catch ( InternalException e ) {
+            // what to do here?
+        }
+
         return new VsphereCompute(this);
     }
 
     @Override
     public @Nonnull DataCenters getDataCenterServices() {
+        // Still does not feel quite right...
+        try {
+            vsphereConnection = getServiceInstance();
+        } catch ( CloudException e ) {
+            // what to do here?
+        } catch ( InternalException e ) {
+            // what to do here?
+        }
         return new DataCenters(this);
     }
 
@@ -230,39 +246,37 @@ public class Vsphere extends AbstractCloud {
     
     @Override
     public @Nullable String testContext() {
-        if( log.isTraceEnabled() ) {
+        if (log.isTraceEnabled()) {
             log.trace("ENTER - " + Vsphere.class.getName() + ".testContext()");
         }
         try {
             ProviderContext ctx = getContext();
 
-            if( ctx == null ) {
+            if (ctx == null) {
                 log.warn("No context was provided for testing");
                 return null;
             }
-            
+
             try {
-                VimService instance = getServiceInstance();
-            } catch ( Exception e ) {
-                e.printStackTrace();
+                VsphereConnection connection = getServiceInstance();
+            } catch (Exception e) {
+                return null;
             }
-            
+
             try {
-                if( !getComputeServices().getVirtualMachineSupport().isSubscribed() ) {
+                if (!getComputeServices().getVirtualMachineSupport().isSubscribed()) {
                     return null;
                 }
                 return ctx.getAccountNumber();
-            }
-            catch( Throwable t ) {
+            } catch (Throwable t) {
                 log.error("testContext(): Failed to test vSphere context: " + t.getMessage());
                 if( log.isTraceEnabled() ) {
                     t.printStackTrace();
                 }
                 return null;
             }
-        }
-        finally {
-            if( log.isTraceEnabled() ) {
+        } finally {
+            if (log.isTraceEnabled()) {
                 log.trace("EXIT - " + Vsphere.class.getName() + ".textContext()");
             }
         }

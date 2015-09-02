@@ -1,10 +1,10 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  
+
   <groupId>org.dasein</groupId>
   <artifactId>dasein-cloud-vsphere</artifactId>
   <version>2015.06-SNAPSHOT</version>
-  
+
   <name>Dasein Cloud Vsphere</name>
   <description>
     A vSphere Dasein Cloud implementation.
@@ -20,19 +20,19 @@
         <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
     </license>
   </licenses>
-  
+
   <organization>
     <!-- Leave org as is if contributing back to Dasein Cloud, otherwise your organization goes here -->
     <name>Dell, Inc.</name>
     <url>http://software.dell.com</url>
   </organization>
 
-    <scm>
-        <connection>scm:git:git://github.com/unwin/dasein-cloud-vsphere-new.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/unwin/dasein-cloud-vsphere-new.git</developerConnection>
-        <url>http://github.com/unwin/dasein-cloud-vsphere-new</url>
-    </scm>
-    
+  <scm>
+    <connection>scm:git:git://github.com/unwin/dasein-cloud-vsphere-new.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/unwin/dasein-cloud-vsphere-new.git</developerConnection>
+    <url>http://github.com/unwin/dasein-cloud-vsphere-new</url>
+  </scm>
+
   <parent>
     <groupId>org.sonatype.oss</groupId>
     <artifactId>oss-parent</artifactId>
@@ -66,13 +66,6 @@
           <version>4.2.1</version>
       </dependency>
       <dependency>
-          <groupId>com.vmware</groupId>
-          <artifactId>vim</artifactId>
-          <version>25</version>
-          <scope>system</scope>
-          <systemPath>/Users/uwnin/Documents/workspace/vSphere-SDK-6.0/vsphere-ws/java/JAXWS/lib/vim25.jar</systemPath>
-      </dependency>
-      <dependency>
           <groupId>dom4j</groupId>
           <artifactId>dom4j</artifactId>
           <version>1.6.1</version>
@@ -85,18 +78,12 @@
           <version>2.5</version>
           <scope>provided</scope>
       </dependency>
-<!--
-      <dependency>
-          <groupId>com.vmware</groupId>
-          <artifactId>vcloud-java-sdk</artifactId>
-          <version>5.5</version>
-      </dependency>
--->
+
       <!-- Test -->
       <dependency>
           <groupId>org.dasein</groupId>
           <artifactId>dasein-cloud-test</artifactId>
-          <version>2015.06.1</version>
+          <version>2015.09.1-SNAPSHOT</version>
           <scope>test</scope>
       </dependency>
       <dependency>
@@ -106,9 +93,63 @@
           <scope>test</scope>
       </dependency>
   </dependencies>
-  
+
   <build>
     <plugins>
+      <plugin> 
+        <groupId>org.jvnet.jax-ws-commons</groupId>
+        <artifactId>jaxws-maven-plugin</artifactId>
+        <version>2.3</version>
+        <executions>
+          <execution>
+            <id>wsimport-from-jdk</id>
+            <goals>
+              <goal>wsimport</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+
+
+
+          <!-- TODO: Be nice to change this to grab the WSDL from a url -->
+
+
+
+          <!--wsdls file directory --> 
+          <wsdlDirectory>src/wsdl/vim25</wsdlDirectory> 
+          <!-- which wsdl file --> 
+          <wsdlFiles> 
+            <wsdlFile>vimService.wsdl</wsdlFile> 
+          </wsdlFiles> 
+          <!-- Keep generated files --> 
+          <keep>true</keep> 
+          <!-- Package name --> 
+          <packageName>com.vmware.vim25</packageName> 
+          <!-- generated source files destination--> 
+          <sourceDestDir>target/generated-code/src</sourceDestDir> 
+        </configuration> 
+      </plugin> 
+
+      <!-- adding generated source --> 
+      <plugin> 
+        <groupId>org.codehaus.mojo</groupId> 
+        <artifactId>build-helper-maven-plugin</artifactId> 
+        <executions> 
+          <execution> 
+            <id>add-source</id> 
+            <phase>generate-sources</phase> 
+            <goals> 
+              <goal>add-source</goal> 
+            </goals> 
+            <configuration> 
+              <sources> 
+                <source>target/generated-code/src</source> 
+              </sources> 
+            </configuration> 
+          </execution> 
+        </executions> 
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>

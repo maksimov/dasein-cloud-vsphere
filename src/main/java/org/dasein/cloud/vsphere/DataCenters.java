@@ -141,6 +141,9 @@ public class DataCenters implements DataCenterServices {
     @Override
     public Collection<Region> listRegions() throws InternalException, CloudException {
         APITrace.begin(provider, "listRegions");
+        //
+        // WIP
+        //
         try {
             ProviderContext ctx = provider.getContext();
 
@@ -154,13 +157,12 @@ public class DataCenters implements DataCenterServices {
                 return regions;
             }
             regions = new ArrayList<Region>();
-            
 
-            
+            VsphereConnection vsphereConnection = provider.getServiceInstance();
+            ServiceContent serviceContent = vsphereConnection.getServiceContent();
+            VimPortType vimPortType = vsphereConnection.getVimPort();
+
             ManagedObjectReference retVal = null;
-            
-            ServiceContent serviceContent = provider.getServiceContent();
-            
             ManagedObjectReference rootFolder = serviceContent.getRootFolder();
             
             //-----------------------------------
@@ -211,11 +213,11 @@ public class DataCenters implements DataCenterServices {
             listfps.add(propertyFilterSpec);
             ServiceContent vimServiceContent = null;
             try {
-                VimService serviceInstance = provider.getServiceInstance();
+                //VimService serviceInstance = provider.getServiceInstance();
                 ManagedObjectReference ref = new ManagedObjectReference();
                 ref.setType(VIMSERVICEINSTANCETYPE);
                 ref.setValue(VIMSERVICEINSTANCEVALUE);
-                vimServiceContent = provider.getVimPortType().retrieveServiceContent(ref);
+                vimServiceContent = vimPortType.retrieveServiceContent(ref);
             } catch ( RuntimeFaultFaultMsg e ) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -224,7 +226,7 @@ public class DataCenters implements DataCenterServices {
 
             List<ObjectContent> listobcont = null;
             try {
-                listobcont = provider.getVimPortType().retrieveProperties(vimServiceContent.getPropertyCollector(), listfps);
+                listobcont = vimPortType.retrieveProperties(vimServiceContent.getPropertyCollector(), listfps);
             } catch ( InvalidPropertyFaultMsg e ) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -234,7 +236,7 @@ public class DataCenters implements DataCenterServices {
             }
 
             if (listobcont != null) {
-                // inspect listobcont
+               // listobcont contains Datacenter = datacenter-21 <<<<< WANT TO RETURN THIS....
                for (ObjectContent oc : listobcont) {
                   ManagedObjectReference mr = oc.getObj();
                   String dcnm = null;
@@ -243,7 +245,7 @@ public class DataCenters implements DataCenterServices {
                      //Since there is only one property PropertySpec pathset
                      //this array contains only one value
                      for (DynamicProperty dp : dps) {
-                        dcnm = (String) dp.getVal();
+                        dcnm = (String) dp.getVal(); // WTC
                      }
                   }
                   //This is done outside of the previous for loop to break
