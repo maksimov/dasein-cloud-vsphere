@@ -109,13 +109,9 @@
           </execution>
         </executions>
         <configuration>
-
-
-
-          <!-- TODO: Be nice to change this to grab the WSDL from a url -->
-
-
-
+          <vmArgs>
+            <vmArg>-Djavax.xml.accessExternalSchema=all</vmArg>
+          </vmArgs>
           <!--wsdls file directory --> 
           <wsdlDirectory>src/wsdl/vim25</wsdlDirectory> 
           <!-- which wsdl file --> 
