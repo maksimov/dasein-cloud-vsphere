@@ -69,35 +69,12 @@ import javax.net.ssl.SSLSession;
  */
 public class Vsphere extends AbstractCloud {
     private int sessionTimeout = 0;
-    //private VimPortType vimPortType;
-    //private ServiceContent serviceContent;
     private String vimHostname;
     private VsphereConnection vsphereConnection;
-    //private UserSession userSession;
-
-    //public VimPortType getVimPortType() {
-    //    return vimPortType;
-    //}
-
-    //public VimPortType getVimPort() {
-    //    return vimPortType;
-    //}
-
-    //public ServiceContent getServiceContent() {
-    //    return serviceContent;
-    //}
-
-    //public ServiceContent getVimServiceInstanceReference() {
-    //    return serviceContent;
-    //}
 
     public String getVimHostname() {
         return vimHostname;
     }
-
-    //public UserSession getUserSession() {
-    //    return userSession;
-    //}
 
     static private final Logger log = getLogger(Vsphere.class);
 
@@ -173,8 +150,6 @@ public class Vsphere extends AbstractCloud {
                 vimPortType = vimService.getVimPort();
                 Map<String, Object> ctxt = ((BindingProvider) vimPortType).getRequestContext();
 
-                //vimHostname = new URI(ctx.getEndpoint()).getHost();
-
                 ctxt.put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, ctx.getEndpoint());
                 ctxt.put(BindingProvider.SESSION_MAINTAIN_PROPERTY, true);
 
@@ -214,29 +189,11 @@ public class Vsphere extends AbstractCloud {
 
     @Override
     public @Nonnull VsphereCompute getComputeServices() {
-        // Still does not feel quite right...
-      /*  try {
-            vsphereConnection = getServiceInstance();
-        } catch ( CloudException e ) {
-            // what to do here?
-        } catch ( InternalException e ) {
-            // what to do here?
-        }
-        */
         return new VsphereCompute(this);
     }
 
     @Override
     public @Nonnull DataCenters getDataCenterServices() {
-        // Still does not feel quite right...
-      /*  try {
-            vsphereConnection = getServiceInstance();
-        } catch ( CloudException e ) {
-            // what to do here?
-        } catch ( InternalException e ) {
-            // what to do here?
-        }
-        */
         return new DataCenters(this);
     }
 
@@ -248,7 +205,6 @@ public class Vsphere extends AbstractCloud {
         return (name == null ? "vSphere" : name);
     }
 
-    
     @Override
     public @Nullable String testContext() {
         if (log.isTraceEnabled()) {
