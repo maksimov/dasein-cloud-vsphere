@@ -11,6 +11,10 @@ import com.vmware.vim25.VimService;
  * Some of the attributes may prove unneeded, and be pruned in the future.
  */
 
+/**
+ * @author Roger Unwin
+ * This class holds objects connected with the vSphere connection
+ */
 public class VsphereConnection {
     private VimService vimService = null;
     private VimPortType vimPortType = null;
@@ -24,18 +28,30 @@ public class VsphereConnection {
         this.serviceContent = serviceContent;
     }
 
+    /**
+     * @return the VimService of the connection
+     */
     public VimService getVimService() {
         return vimService;
     }
 
+    /**
+     * @return the VimPortType of the connection
+     */
     public VimPortType getVimPort() {
         return vimPortType;
     }
 
+    /**
+     * @return the userSession of the connection
+     */
     public UserSession getUserSession() {
         return userSession;
     }
 
+    /**
+     * @return the serviceContent of the connection
+     */
     public ServiceContent getServiceContent() {
         return serviceContent;
     }
