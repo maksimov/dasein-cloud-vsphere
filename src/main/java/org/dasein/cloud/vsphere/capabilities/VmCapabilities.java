@@ -1,6 +1,11 @@
 package org.dasein.cloud.vsphere.capabilities;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Locale;
+
+import javax.annotation.Nonnull;
 
 import org.dasein.cloud.AbstractCapabilities;
 import org.dasein.cloud.CloudException;
@@ -16,11 +21,10 @@ import org.dasein.cloud.compute.VmState;
 import org.dasein.cloud.util.NamingConstraints;
 import org.dasein.cloud.vsphere.Vsphere;
 
-public class VmCapabilities extends AbstractCapabilities<Vsphere> implements VirtualMachineCapabilities{
+public class VmCapabilities extends AbstractCapabilities<Vsphere> implements VirtualMachineCapabilities {
 
     public VmCapabilities(Vsphere provider) {
         super(provider);
-        // TODO Auto-generated constructor stub
     }
 
     @Override
@@ -203,12 +207,16 @@ public class VmCapabilities extends AbstractCapabilities<Vsphere> implements Vir
         return false;
     }
 
+    private transient volatile Collection<Architecture> architectures;
     @Override
-    public Iterable<Architecture> listSupportedArchitectures() throws InternalException, CloudException {
-        // TODO Auto-generated method stub
-        return null;
+    public @Nonnull Iterable<Architecture> listSupportedArchitectures() throws InternalException, CloudException {
+        if( architectures == null ) {
+            architectures = Collections.unmodifiableCollection(
+                    Arrays.asList(Architecture.I64, Architecture.I32)
+            );
+        }
+        return architectures;
     }
-
     @Override
     public boolean supportsSpotVirtualMachines() throws InternalException, CloudException {
         // TODO Auto-generated method stub

@@ -52,6 +52,7 @@ import com.vmware.vim25.TraversalSpec;
 import com.vmware.vim25.UserSession;
 import com.vmware.vim25.VimPortType;
 import com.vmware.vim25.VimService;
+import org.dasein.util.CalendarWrapper;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -151,87 +152,91 @@ public class Vsphere extends AbstractCloud {
     }
 
     public @Nonnull VsphereConnection getServiceInstance() throws CloudException, InternalException {
-        //
-        // TODO ASAP! add caching
-        //
-        ProviderContext ctx = getContext();
-        ServiceContent serviceContent =  null;
-        VimService vimService = null;
-        VimPortType vimPortType = null;
-        UserSession userSession = null;
-        try {
-            SSLContext sc = SSLContext.getInstance("SSL");
-            sc.getServerSessionContext().setSessionTimeout(sessionTimeout);
-            sc.init(null, null, null);
+        if (vsphereConnection == null ) {
+            ProviderContext ctx = getContext();
+            ServiceContent serviceContent =  null;
+            VimService vimService = null;
+            VimPortType vimPortType = null;
+            UserSession userSession = null;
+            try {
+                SSLContext sc = SSLContext.getInstance("SSL");
+                sc.getServerSessionContext().setSessionTimeout(sessionTimeout);
+                sc.init(null, null, null);
 
-            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+                HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
 
-            ManagedObjectReference servicesInstance = new ManagedObjectReference();
-            servicesInstance.setType("ServiceInstance");
-            servicesInstance.setValue("ServiceInstance");
+                ManagedObjectReference servicesInstance = new ManagedObjectReference();
+                servicesInstance.setType("ServiceInstance");
+                servicesInstance.setValue("ServiceInstance");
 
-            vimService = new com.vmware.vim25.VimService();
-            vimPortType = vimService.getVimPort();
-            Map<String, Object> ctxt = ((BindingProvider) vimPortType).getRequestContext();
+                vimService = new com.vmware.vim25.VimService();
+                vimPortType = vimService.getVimPort();
+                Map<String, Object> ctxt = ((BindingProvider) vimPortType).getRequestContext();
 
-            //vimHostname = new URI(ctx.getEndpoint()).getHost();
+                //vimHostname = new URI(ctx.getEndpoint()).getHost();
 
-            ctxt.put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, ctx.getEndpoint());
-            ctxt.put(BindingProvider.SESSION_MAINTAIN_PROPERTY, true);
+                ctxt.put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, ctx.getEndpoint());
+                ctxt.put(BindingProvider.SESSION_MAINTAIN_PROPERTY, true);
 
-            serviceContent = vimPortType.retrieveServiceContent(servicesInstance);
-        } catch (Exception e) {
-            throw new InternalException(e);
-        }
-
-        List<ContextRequirements.Field> fields = getContextRequirements().getConfigurableValues();
-        String username = null;
-        String password = null;
-        try  {
-            for (ContextRequirements.Field field : fields ) {
-                if (field.type.equals(ContextRequirements.FieldType.KEYPAIR)){
-                    byte[][] keyPair = (byte[][])ctx.getConfigurationValue(field);
-                    username = new String(keyPair[0], "utf-8");
-                    password = new String(keyPair[1], "utf-8");
-                }
+                serviceContent = vimPortType.retrieveServiceContent(servicesInstance);
+            } catch (Exception e) {
+                throw new InternalException(e);
             }
-        } catch ( UnsupportedEncodingException e ) {
-            throw new InternalException(e);
-        }
 
-        try {
-            userSession = vimPortType.login(serviceContent.getSessionManager(), username, password, null);
-        } catch (Exception e) {
-            throw new CloudException(e.getMessage());
-        }
+            List<ContextRequirements.Field> fields = getContextRequirements().getConfigurableValues();
+            String username = null;
+            String password = null;
+            try  {
+                for (ContextRequirements.Field field : fields ) {
+                    if (field.type.equals(ContextRequirements.FieldType.KEYPAIR)){
+                        byte[][] keyPair = (byte[][])ctx.getConfigurationValue(field);
+                        username = new String(keyPair[0], "utf-8");
+                        password = new String(keyPair[1], "utf-8");
+                    }
+                }
+            } catch ( UnsupportedEncodingException e ) {
+                throw new InternalException(e);
+            }
 
-        return new VsphereConnection(vimService, vimPortType, userSession, serviceContent);
+            try {
+                userSession = vimPortType.login(serviceContent.getSessionManager(), username, password, null);
+            } catch (Exception e) {
+                throw new CloudException(e.getMessage());
+            }
+
+            vsphereConnection = new VsphereConnection(vimService, vimPortType, userSession, serviceContent);
+        }
+        else {
+            System.out.println("Reusing connection "+vsphereConnection);
+        }
+        return vsphereConnection;
     }
 
     @Override
     public @Nonnull VsphereCompute getComputeServices() {
         // Still does not feel quite right...
-        try {
+      /*  try {
             vsphereConnection = getServiceInstance();
         } catch ( CloudException e ) {
             // what to do here?
         } catch ( InternalException e ) {
             // what to do here?
         }
-
+        */
         return new VsphereCompute(this);
     }
 
     @Override
     public @Nonnull DataCenters getDataCenterServices() {
         // Still does not feel quite right...
-        try {
+      /*  try {
             vsphereConnection = getServiceInstance();
         } catch ( CloudException e ) {
             // what to do here?
         } catch ( InternalException e ) {
             // what to do here?
         }
+        */
         return new DataCenters(this);
     }
 
@@ -279,6 +284,78 @@ public class Vsphere extends AbstractCloud {
             if (log.isTraceEnabled()) {
                 log.trace("EXIT - " + Vsphere.class.getName() + ".textContext()");
             }
+        }
+    }
+
+    private int holdCount = 0;
+
+    @Override
+    public void hold() {
+        super.hold();
+        synchronized( this ) {
+            holdCount++;
+        }
+    }
+
+    @Override
+    public void release() {
+        synchronized ( this ) {
+            if( holdCount > 0 ) {
+                holdCount--;
+            }
+        }
+        super.release();
+    }
+
+    private Thread closingThread = null;
+
+    @Override
+    public void close() {
+        synchronized( this ) {
+            if( closingThread != null ) {
+                return;
+            }
+            if( holdCount < 1 ) {
+                cleanUp();
+            }
+            else {
+                closingThread = new Thread() {
+                    public void run() {
+                        long timeout = System.currentTimeMillis() + (CalendarWrapper.MINUTE * 20L);
+
+                        synchronized( Vsphere.this ) {
+                            while( holdCount > 0 && System.currentTimeMillis() < timeout ) {
+                                try { Vsphere.this.wait(5000L); }
+                                catch( InterruptedException ignore ) { }
+                            }
+                            cleanUp();
+                            closingThread = null;
+                        }
+                    }
+                };
+
+                closingThread.setDaemon(true);
+                closingThread.start();
+            }
+        }
+    }
+
+    private void cleanUp() {
+        super.close();
+        try {
+            getServiceInstance().getVimPort().logout(getServiceInstance().getServiceContent().getSessionManager());
+        }
+        catch( CloudException ignore ) {
+            // ignore
+        }
+        catch( InternalException ignore ) {
+            // ignore
+        }
+        catch( NullPointerException ignore ) {
+            // ignore
+        }
+        catch ( RuntimeFaultFaultMsg ignore ) {
+            // ignore
         }
     }
 }
