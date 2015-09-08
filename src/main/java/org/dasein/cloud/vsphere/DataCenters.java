@@ -128,6 +128,101 @@ public class DataCenters implements DataCenterServices {
             }
             ArrayList<DataCenter> dataCenters = new ArrayList<DataCenter>();
             // TODO: query the API for the data center list
+
+            VsphereConnection vsphereConnection = provider.getServiceInstance();
+            ServiceContent serviceContent = vsphereConnection.getServiceContent();
+            VimPortType vimPortType = vsphereConnection.getVimPort();
+
+            ManagedObjectReference rootFolder = serviceContent.getRootFolder();
+
+            //-----------------------------------
+
+            // Create a traversal spec that starts from the 'root' objects
+            SelectionSpec sSpec = new SelectionSpec();
+            sSpec.setName("VisitFolders");
+
+
+            TraversalSpec dataCenterToHostFolder = new TraversalSpec();
+            dataCenterToHostFolder.setName("DataCenterToHostFolder");
+            dataCenterToHostFolder.setType("Datacenter");
+            dataCenterToHostFolder.setPath("hostFolder");
+            dataCenterToHostFolder.setSkip(false);
+            dataCenterToHostFolder.getSelectSet().add(sSpec);
+
+            TraversalSpec traversalSpec = new TraversalSpec();
+            traversalSpec.setName("VisitFolders");
+            traversalSpec.setType("Folder");
+            traversalSpec.setPath("childEntity");
+            traversalSpec.setSkip(false);
+            List<SelectionSpec> sSpecArr = new ArrayList<SelectionSpec>();
+            sSpecArr.add(sSpec);
+            sSpecArr.add(dataCenterToHostFolder);
+            //sSpecArr.add(vAppToVM);
+            //sSpecArr.add(vAppToVApp);
+            traversalSpec.getSelectSet().addAll(sSpecArr);
+            //----------------------------------------
+            // Create Property Spec
+            PropertySpec propertySpec = new PropertySpec();
+            propertySpec.setAll(Boolean.FALSE);
+            propertySpec.getPathSet().add("name");
+            propertySpec.setType("ClusterComputeResource");
+
+            // Now create Object Spec
+            ObjectSpec objectSpec = new ObjectSpec();
+            objectSpec.setObj(rootFolder);
+            objectSpec.setSkip(Boolean.TRUE);
+            objectSpec.getSelectSet().add(traversalSpec);
+
+            // Create PropertyFilterSpec using the PropertySpec and ObjectPec
+            // created above.
+            PropertyFilterSpec propertyFilterSpec = new PropertyFilterSpec();
+            propertyFilterSpec.getPropSet().add(propertySpec);
+            propertyFilterSpec.getObjectSet().add(objectSpec);
+
+            List<PropertyFilterSpec> listfps = new ArrayList<PropertyFilterSpec>(1);
+            listfps.add(propertyFilterSpec);
+            ServiceContent vimServiceContent = null;
+            try {
+                //VimService serviceInstance = provider.getServiceInstance();
+                ManagedObjectReference ref = new ManagedObjectReference();
+                ref.setType(VIMSERVICEINSTANCETYPE);
+                ref.setValue(VIMSERVICEINSTANCEVALUE);
+                vimServiceContent = vimPortType.retrieveServiceContent(ref);
+            } catch ( RuntimeFaultFaultMsg e ) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+
+            List<ObjectContent> listobcont = null;
+            try {
+                listobcont = vimPortType.retrieveProperties(vimServiceContent.getPropertyCollector(), listfps);
+            } catch ( InvalidPropertyFaultMsg e ) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            } catch ( RuntimeFaultFaultMsg e ) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+            if (listobcont != null) {
+                for (ObjectContent oc : listobcont) {
+                    ManagedObjectReference mr = oc.getObj();
+                    String dcnm = null;
+                    List<DynamicProperty> dps = oc.getPropSet();
+                    if (dps != null) {
+                        //Since there is only one property PropertySpec pathset
+                        //this array contains only one value
+                        for (DynamicProperty dp : dps) {
+                            dcnm = (String) dp.getVal();
+                            DataCenter dc = toDataCenter(mr.getValue(), dcnm, providerRegionId);
+                            if ( dc != null ) {
+                                dataCenters.add(dc);
+                            }
+                        }
+                    }
+                }
+            }
             cache.put(ctx, dataCenters);
             return dataCenters;
         }
@@ -246,20 +341,14 @@ public class DataCenters implements DataCenterServices {
                      //this array contains only one value
                      for (DynamicProperty dp : dps) {
                         dcnm = (String) dp.getVal(); // WTC
+                         Region region = toRegion(mr.getValue(), dcnm);
+                         if ( region != null ) {
+                             regions.add(region);
+                         }
                      }
-                  }
-                  //This is done outside of the previous for loop to break
-                  //out of the loop as soon as the required datacenter is found.
-                  if (dcnm != null && dcnm.equals("hostname")) {
-                     retVal = mr;
-                     break;
                   }
                }
             }
-            
-            
-            
-            // TODO: query the API for the regions
             cache.put(ctx, regions);
             return regions;
 
@@ -311,5 +400,24 @@ public class DataCenters implements DataCenterServices {
     public Folder getVMFolder(String providerVMFolderId) throws InternalException, CloudException {
         // TODO Auto-generated method stub
         return null;
+    }
+
+    private @Nullable Region toRegion(@Nonnull String regionId, @Nonnull String regionName ) {
+        Region region = new Region();
+
+        region.setActive(true);
+        region.setAvailable(true);
+        region.setJurisdiction("US");
+        region.setName(regionName);
+        region.setProviderRegionId(regionId);
+        return region;
+    }
+
+    private @Nullable DataCenter toDataCenter(@Nonnull String dataCenterId, @Nonnull String datacenterName, @Nonnull String regionId) {
+
+
+        DataCenter dc = new DataCenter(dataCenterId, datacenterName, regionId, true, true);
+
+        return dc;
     }
 }
