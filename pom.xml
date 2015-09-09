@@ -29,7 +29,7 @@
   <description>
     The Dasein Cloud implementation for vSphere.
   </description>
-  <url>http://github.com/greese/dasein-cloud-vsphere</url>
+  <url>http://github.com/dasein-cloud/dasein-cloud-vsphere</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -48,9 +48,9 @@
   </organization>
 
     <scm>
-        <connection>scm:git:git://github.com/greese/dasein-cloud-vsphere.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/greese/dasein-cloud-vsphere.git</developerConnection>
-        <url>http://github.com/greese/dasein-cloud-vsphere</url>
+        <connection>scm:git:git://github.com/dasein-cloud/dasein-cloud-vsphere.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/dasein-cloud/dasein-cloud-vsphere.git</developerConnection>
+        <url>http://github.com/dasein-cloud/dasein-cloud-vsphere</url>
     </scm>
     
   <parent>
