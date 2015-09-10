@@ -31,20 +31,17 @@ public class VsphereDataCenterCapabilities extends AbstractCapabilities<Vsphere>
 
     @Override
     public boolean supportsResourcePools() {
-        // TODO Auto-generated method stub
-        return false;
+        return true;
     }
 
     @Override
     public boolean supportsStoragePools() {
-        // TODO Auto-generated method stub
-        return false;
+        return true;
     }
 
     @Override
     public boolean supportsFolders() {
-        // TODO Auto-generated method stub
-        return false;
+        return true;
     }
 
 }
