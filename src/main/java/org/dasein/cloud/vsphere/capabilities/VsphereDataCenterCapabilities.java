@@ -25,8 +25,7 @@ public class VsphereDataCenterCapabilities extends AbstractCapabilities<Vsphere>
 
     @Override
     public boolean supportsAffinityGroups() {
-        // TODO Auto-generated method stub
-        return false;
+        return true;
     }
 
     @Override
