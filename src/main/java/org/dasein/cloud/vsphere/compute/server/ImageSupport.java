@@ -52,7 +52,9 @@ import com.vmware.vim25.ServiceContent;
 import com.vmware.vim25.TraversalSpec;
 import com.vmware.vim25.UpdateSet;
 import com.vmware.vim25.VimPortType;
+import com.vmware.vim25.VirtualMachineConfigSummary;
 import com.vmware.vim25.VirtualMachineRuntimeInfo;
+import com.vmware.vim25.VirtualMachineSummary;
 
 
 /**
@@ -92,21 +94,24 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
     public Iterable<MachineImage> listImages(ImageFilterOptions options) throws CloudException, InternalException {
         APITrace.begin(provider, "listImages");
 
+        
+        //
+        // need to cope with image filter options...
+        //
+        
+        
+        
         try {
             VsphereConnection vsphereConnection = provider.getServiceInstance();
             VimPortType vimPort = vsphereConnection.getVimPort();
             ServiceContent serviceContent = vsphereConnection.getServiceContent();
-            ManagedObjectReference viewManager = serviceContent.getViewManager();
-            ManagedObjectReference rootFolder = serviceContent.getRootFolder();
-            ManagedObjectReference containerView = vimPort.createContainerView(viewManager, rootFolder, Arrays.asList("VirtualMachine"), true);
-            VimPortType methods = vimPort;
-            ServiceContent sContent = serviceContent;
-            
 
-             // Get references to the ViewManager and PropertyCollector
-             ManagedObjectReference viewMgrRef = sContent.getViewManager();
-             ManagedObjectReference propColl = sContent.getPropertyCollector();
-              
+
+
+
+
+             ManagedObjectReference viewManager = serviceContent.getViewManager();
+
              // use a container view for virtual machines to define the traversal
              // - invoke the VimPortType method createContainerView (corresponds
              // to the ViewManager method) - pass the ViewManager MOR and
@@ -115,9 +120,9 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
              // declare an arraylist and add the type string to it
              List<String> vmList = new ArrayList<String>();
              vmList.add("VirtualMachine");
-              
-             ManagedObjectReference cViewRef = methods.createContainerView(viewMgrRef, sContent.getRootFolder(), vmList, true);
-              
+
+             ManagedObjectReference cViewRef = vimPort.createContainerView(viewManager, serviceContent.getRootFolder(), vmList, true);
+
              // create an object spec to define the beginning of the traversal;
              // container view is the root object for this traversal
              ObjectSpec oSpec = new ObjectSpec();
@@ -142,15 +147,21 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
              PropertySpec pSpec = new PropertySpec();
              pSpec.setType("VirtualMachine");
              pSpec.getPathSet().add("name");
+             // http://pubs.vmware.com/vsphere-60/topic/com.vmware.wssdk.pg.doc/images/VirtualMachine-VirtualMachineSummary-VMConfig.jpg
+             // see above when modifying code to work for listVm's
              pSpec.getPathSet().add("summary");
+             pSpec.getPathSet().add("summary.guest");
+             pSpec.getPathSet().add("summary.config");
+             
+             // Experimental, looking for owner, no joy
+             //pSpec.getPathSet().add("capability");
+             //pSpec.getPathSet().add("config");
+             //pSpec.getPathSet().add("runtime");
              
              
-             
-             
-             
-             // ^^ magic is above. keep adding features to pSpec....
-             
-             
+             //pSpec.getPathSet().add("summary.config.template"); // can have more than one. 
+             //pSpec.getPathSet().add("summary.config.vmPathName");
+             //pSpec.getPathSet().add("summary.config.uuid");
              // create a PropertyFilterSpec and add the object and
              // property specs to it; use the getter method to reference
              // the mapped XML representation of the lists and add the specs
@@ -165,51 +176,55 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
               
              // get the data from the server
              RetrieveOptions ro = new RetrieveOptions();
-             RetrieveResult props = methods.retrievePropertiesEx(propColl,fSpecList,ro);
+             ManagedObjectReference propColl = serviceContent.getPropertyCollector();
+             RetrieveResult props = vimPort.retrievePropertiesEx(propColl,fSpecList,ro);
               
              // go through the returned list and print out the data
              if (props != null) {
                  for (ObjectContent oc : props.getObjects()) {
                      
-                     /*
-                     PropertySpec pprops = new PropertySpec();
-                     pprops.setAll(Boolean.FALSE);
-                     pprops.getPathSet().add("name");
-                     pprops.setType("ManagedEntity");
-                     List<PropertySpec> propspecary = new ArrayList<PropertySpec>();
-                     propspecary.add(pprops);
-                     
-                     
-                     PropertyFilterSpec spec = new PropertyFilterSpec();
-                     spec.getPropSet().addAll(propspecary);
 
-                     spec.getObjectSet().add(new ObjectSpec());
-                     spec.getObjectSet().get(0).setObj(rootFolder);
-                     spec.getObjectSet().get(0).setSkip(Boolean.FALSE);
-                     spec.getObjectSet().get(0).getSelectSet().add(tSpec);
-
-                     List<PropertyFilterSpec> listpfs = new ArrayList<PropertyFilterSpec>(1);
-                     listpfs.add(spec);
                      
-                     RetrieveOptions propObjectRetrieveOpts = new RetrieveOptions();
-
-                     List<ObjectContent> listobjcontent = new ArrayList<ObjectContent>();
-        
-                     RetrieveResult rslts =
-                             vimPort.retrievePropertiesEx(oc.getObj(), listpfs, propObjectRetrieveOpts);
-                     
-                     */
-                     
-                     
-                     String vmName = null;
-                     String path = null;
+                     String name = null;
+                     Object value = null;
                      
                      List<DynamicProperty> dps = oc.getPropSet();
                      if (dps != null) {
+                         /*
+                          * datacenter-21 or domain-c26
+                         MachineImage image = MachineImage.getInstance(
+                                 ownerId, 
+                                 regionId, // provider.getServiceInstance(); should betray this.
+                                 imageId, // guestId/guestUuid
+                                 imageClass, // always vmx
+                                 state, // found
+                                 name, // guestId/guestUuid
+                                 description, // guest full name
+                                 architecture, // featureRequirement could betray cpu type...
+                                 platform) // guestId/guestFullName
+                         */
+                         VirtualMachineSummary virtualMachineSummary = null;
+                         VirtualMachineConfigSummary virtualMachineConfigSummary = null;
                          for (DynamicProperty dp : dps) {
-                                 vmName = (String) dp.getVal();
-                                 path = dp.getName();
-                                 System.out.println(path + " = " + vmName);
+                                 
+                                 name = dp.getName();
+                                 if (name.equals("summary")) {
+
+                                     virtualMachineSummary = (VirtualMachineSummary)dp.getVal();
+                                     if (virtualMachineSummary.getConfig().isTemplate()) {
+                                         // it is a image(template)!!!
+                                     }
+                                     //for (DynamicProperty oc2 : v) {
+                                         System.out.println("inspect");
+                                     //}
+                                 } else if (name.equals("summary.config")) {
+                                     virtualMachineConfigSummary = (VirtualMachineConfigSummary)dp.getVal();
+
+                                     System.out.println("inspect");
+                                 } else {
+                                     value = dp.getVal();
+                                     System.out.println(name + " = " + value.toString());
+                                 }
                          }
                      }
                  }
