@@ -1,6 +1,7 @@
 package org.dasein.cloud.vsphere.compute;
 
 import com.vmware.vim25.*;
+
 import org.apache.log4j.Logger;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
@@ -24,6 +25,7 @@ import org.dasein.util.uom.time.TimePeriod;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -95,11 +97,11 @@ public class HostSupport extends AbstractAffinityGroupSupport<Vsphere> {
             crToH.setPath("host");
             crToH.setName("crToH");
 
-            List<SelectionSpec> selectionSpecsArr = new ArrayList<>();
+            List<SelectionSpec> selectionSpecsArr = new ArrayList<SelectionSpec>();
             selectionSpecsArr.add(crToH);
             traversalSpec.getSelectSet().addAll(selectionSpecsArr);
 
-            List<PropertySpec> pSpecs = new ArrayList<>();
+            List<PropertySpec> pSpecs = new ArrayList<PropertySpec>();
             // Create Property Spec
             PropertySpec propertySpec = new PropertySpec();
             propertySpec.setAll(Boolean.FALSE);
