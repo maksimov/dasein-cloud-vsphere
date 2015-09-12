@@ -31,13 +31,13 @@ import org.dasein.cloud.InternalException;
 import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.vsphere.compute.VsphereCompute;
 
-
 import com.vmware.vim25.ManagedObjectReference;
 import com.vmware.vim25.RuntimeFaultFaultMsg;
 import com.vmware.vim25.ServiceContent;
 import com.vmware.vim25.UserSession;
 import com.vmware.vim25.VimPortType;
 import com.vmware.vim25.VimService;
+
 import org.dasein.util.CalendarWrapper;
 
 import javax.annotation.Nonnull;
@@ -45,6 +45,7 @@ import javax.annotation.Nullable;
 import javax.xml.ws.BindingProvider;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
 
 
 /**
@@ -125,7 +126,8 @@ public class Vsphere extends AbstractCloud {
                 sc.getServerSessionContext().setSessionTimeout(sessionTimeout);
                 sc.init(null, null, null);
 
-                HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+                
+                //HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
 
                 ManagedObjectReference servicesInstance = new ManagedObjectReference();
                 servicesInstance.setType("ServiceInstance");
