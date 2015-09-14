@@ -20,10 +20,6 @@
 package org.dasein.cloud.vsphere;
 
 import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -35,32 +31,22 @@ import org.dasein.cloud.InternalException;
 import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.vsphere.compute.VsphereCompute;
 
-import com.vmware.vim25.DynamicProperty;
-import com.vmware.vim25.InvalidLocaleFaultMsg;
-import com.vmware.vim25.InvalidLoginFaultMsg;
-import com.vmware.vim25.InvalidPropertyFaultMsg;
 import com.vmware.vim25.ManagedObjectReference;
-import com.vmware.vim25.ObjectContent;
-import com.vmware.vim25.ObjectSpec;
-import com.vmware.vim25.PropertyFilterSpec;
-import com.vmware.vim25.PropertySpec;
-import com.vmware.vim25.RetrieveOptions;
-import com.vmware.vim25.RetrieveResult;
 import com.vmware.vim25.RuntimeFaultFaultMsg;
 import com.vmware.vim25.ServiceContent;
-import com.vmware.vim25.TraversalSpec;
 import com.vmware.vim25.UserSession;
 import com.vmware.vim25.VimPortType;
 import com.vmware.vim25.VimService;
+
 import org.dasein.util.CalendarWrapper;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.xml.ws.BindingProvider;
-import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocketFactory;
+
 
 /**
  * Add header info here
@@ -140,7 +126,8 @@ public class Vsphere extends AbstractCloud {
                 sc.getServerSessionContext().setSessionTimeout(sessionTimeout);
                 sc.init(null, null, null);
 
-                HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+                
+                //HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
 
                 ManagedObjectReference servicesInstance = new ManagedObjectReference();
                 servicesInstance.setType("ServiceInstance");

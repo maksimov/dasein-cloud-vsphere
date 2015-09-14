@@ -9,14 +9,10 @@ import org.dasein.cloud.compute.VirtualMachineSupport;
 import org.dasein.cloud.vsphere.Vsphere;
 import org.dasein.cloud.vsphere.compute.server.ImageSupport;
 
-/**
- *
- */
+
 public class VsphereCompute extends AbstractComputeServices<Vsphere> {
 
-    /**
-     *
-     */
+
     public VsphereCompute(Vsphere provider) {
         super(provider);
         // TODO Auto-generated constructor stub
