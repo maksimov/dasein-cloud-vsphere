@@ -117,8 +117,9 @@ public class DataCentersTest {
                 count++;
             }
             assertEquals("Number of regions returned is incorrect", 1, count);
-        }
-        catch (CloudException |InternalException e){
+        } catch (CloudException e){
+            e.printStackTrace();
+        } catch (InternalException e){
             e.printStackTrace();
         }
     }
@@ -136,8 +137,9 @@ public class DataCentersTest {
             assertNotNull(region);
             assertEquals(region.getName(), "WTC");
             assertEquals(region.getProviderRegionId(), "datacenter-21");
-        }
-        catch (CloudException |InternalException e){
+        } catch (CloudException e){
+            e.printStackTrace();
+        } catch (InternalException e){
             e.printStackTrace();
         }
     }
@@ -153,8 +155,9 @@ public class DataCentersTest {
 
             Region region = dc.getRegion("myFakeRegion");
             assertTrue("Region returned but id was made up", region == null);
-        }
-        catch (CloudException |InternalException e){
+        } catch (CloudException e){
+            e.printStackTrace();
+        } catch (InternalException e){
             e.printStackTrace();
         }
     }
@@ -171,9 +174,10 @@ public class DataCentersTest {
             try {
                 when(dc.listDataCenters(anyString()))
                         .thenCallRealMethod();
-            }
-            catch (CloudException|InternalException e){
-                //ignore
+            } catch (CloudException e){
+                // ignore
+            } catch (InternalException e){
+                // ignore
             }
 
             Iterable<DataCenter> dcs = dc.listDataCenters("datacenter-21");
@@ -190,8 +194,9 @@ public class DataCentersTest {
                 count++;
             }
             assertEquals("Number of datacenters returned is incorrect", 2, count);
-        }
-        catch (CloudException |InternalException e){
+        } catch (CloudException e){
+            e.printStackTrace();
+        } catch (InternalException e){
             e.printStackTrace();
         }
     }
@@ -211,16 +216,18 @@ public class DataCentersTest {
             try {
                 when(dc.getDataCenter(anyString()))
                         .thenCallRealMethod();
-            }
-            catch (CloudException|InternalException e){
+            } catch (CloudException e){
+                //ignore
+            } catch (InternalException e){
                 //ignore
             }
             DataCenter dataCenter = dc.getDataCenter("domain-c26");
             assertNotNull(dataCenter);
             assertEquals(dataCenter.getName(), "WTC-DEV1");
             assertEquals(dataCenter.getProviderDataCenterId(), "domain-c26");
-        }
-        catch (CloudException |InternalException e){
+        } catch (CloudException e){
+            e.printStackTrace();
+        } catch (InternalException e){
             e.printStackTrace();
         }
     }
@@ -240,14 +247,16 @@ public class DataCentersTest {
             try {
                 when(dc.getDataCenter(anyString()))
                         .thenCallRealMethod();
-            }
-            catch (CloudException|InternalException e){
+            } catch (CloudException e){
+                //ignore
+            } catch (InternalException e){
                 //ignore
             }
             DataCenter dataCenter = dc.getDataCenter("myFakeDC");
             assertTrue("DataCenter returned but id was made up", dataCenter == null);
-        }
-        catch (CloudException |InternalException e){
+        } catch (CloudException e){
+            e.printStackTrace();
+        } catch (InternalException e){
             e.printStackTrace();
         }
     }
