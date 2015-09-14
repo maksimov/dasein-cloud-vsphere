@@ -1,59 +1,34 @@
 package org.dasein.cloud.vsphere.compute.server;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
 
-import javax.xml.datatype.XMLGregorianCalendar;
+import java.util.List;
+import java.util.ArrayList;
 
 import org.apache.log4j.Logger;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
-import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.compute.AbstractImageSupport;
 import org.dasein.cloud.compute.ImageFilterOptions;
 import org.dasein.cloud.compute.MachineImage;
-import org.dasein.cloud.dc.DataCenter;
-import org.dasein.cloud.dc.Region;
 import org.dasein.cloud.util.APITrace;
-import org.dasein.cloud.util.Cache;
-import org.dasein.cloud.util.CacheLevel;
-import org.dasein.cloud.vsphere.NoContextException;
 import org.dasein.cloud.vsphere.Vsphere;
 import org.dasein.cloud.vsphere.VsphereConnection;
 import org.dasein.cloud.vsphere.capabilities.VsphereImageCapabilities;
-import org.dasein.util.uom.time.Day;
-import org.dasein.util.uom.time.TimePeriod;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.vmware.vim25.DynamicProperty;
-import com.vmware.vim25.InvalidPropertyFaultMsg;
 import com.vmware.vim25.ManagedObjectReference;
 import com.vmware.vim25.ObjectContent;
 import com.vmware.vim25.ObjectSpec;
-import com.vmware.vim25.ObjectUpdate;
-import com.vmware.vim25.ObjectUpdateKind;
-import com.vmware.vim25.PropertyChange;
-import com.vmware.vim25.PropertyChangeOp;
 import com.vmware.vim25.PropertyFilterSpec;
-import com.vmware.vim25.PropertyFilterUpdate;
 import com.vmware.vim25.PropertySpec;
 import com.vmware.vim25.RetrieveOptions;
 import com.vmware.vim25.RetrieveResult;
-import com.vmware.vim25.RuntimeFaultFaultMsg;
-import com.vmware.vim25.SelectionSpec;
 import com.vmware.vim25.ServiceContent;
 import com.vmware.vim25.TraversalSpec;
-import com.vmware.vim25.UpdateSet;
 import com.vmware.vim25.VimPortType;
 import com.vmware.vim25.VirtualMachineConfigSummary;
-import com.vmware.vim25.VirtualMachineRuntimeInfo;
 import com.vmware.vim25.VirtualMachineSummary;
 
 
@@ -179,6 +154,9 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
              ManagedObjectReference propColl = serviceContent.getPropertyCollector();
              RetrieveResult props = vimPort.retrievePropertiesEx(propColl,fSpecList,ro);
               
+             ObjectMapper mapper = new ObjectMapper();
+             System.out.println(mapper.writeValueAsString(props));
+             RetrieveResult mockProps = mapper.readValue(mapper.writeValueAsString(props), RetrieveResult.class);
              // go through the returned list and print out the data
              if (props != null) {
                  for (ObjectContent oc : props.getObjects()) {
@@ -219,7 +197,8 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
                                      //}
                                  } else if (name.equals("summary.config")) {
                                      virtualMachineConfigSummary = (VirtualMachineConfigSummary)dp.getVal();
-
+                                     String guestId = virtualMachineConfigSummary.getGuestId();
+                                     String guestUUID = virtualMachineConfigSummary.getInstanceUuid();
                                      System.out.println("inspect");
                                  } else {
                                      value = dp.getVal();

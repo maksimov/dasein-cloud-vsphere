@@ -20,6 +20,7 @@
 package org.dasein.cloud.vsphere;
 
 import com.vmware.vim25.*;
+
 import org.apache.log4j.Logger;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
@@ -105,7 +106,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             ArrayList<DataCenter> dataCenters = new ArrayList<DataCenter>();
 
             // Create Property Spec
-            List<PropertySpec>  pSpecs = new ArrayList<>();
+            List<PropertySpec>  pSpecs = new ArrayList<PropertySpec>();
             PropertySpec propertySpec = new PropertySpec();
             propertySpec.setAll(Boolean.FALSE);
             propertySpec.getPathSet().add("name");
@@ -171,7 +172,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             Collection<Region> regions = new ArrayList<Region>();
 
             // Create Property Spec
-            List<PropertySpec> pSpecs = new ArrayList<>();
+            List<PropertySpec> pSpecs = new ArrayList<PropertySpec>();
             PropertySpec propertySpec = new PropertySpec();
             propertySpec.setAll(Boolean.FALSE);
             propertySpec.getPathSet().add("name");
@@ -249,13 +250,13 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             crToRp.setName("crToRp");
             crToRp.getSelectSet().add(sSpec);
 
-            List<SelectionSpec> selectionSpecsArr = new ArrayList<>();
+            List<SelectionSpec> selectionSpecsArr = new ArrayList<SelectionSpec>();
             selectionSpecsArr.add(sSpec);
             selectionSpecsArr.add(rpToRp);
             selectionSpecsArr.add(crToRp);
 
             // Create Property Spec
-            List<PropertySpec> pSpecs = new ArrayList<>();
+            List<PropertySpec> pSpecs = new ArrayList<PropertySpec>();
             PropertySpec propertySpec = new PropertySpec();
             propertySpec.setAll(Boolean.FALSE);
             propertySpec.getPathSet().add("name");
@@ -346,11 +347,11 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             dcToDs.setName("dcToDs");
             dcToDs.setSkip(Boolean.FALSE);
 
-            List<SelectionSpec> selectionSpecsArr = new ArrayList<>();
+            List<SelectionSpec> selectionSpecsArr = new ArrayList<SelectionSpec>();
             selectionSpecsArr.add(dcToDs);
 
             // Create Property Spec
-            List<PropertySpec> pSpecs = new ArrayList<>();
+            List<PropertySpec> pSpecs = new ArrayList<PropertySpec>();
             PropertySpec propertySpec = new PropertySpec();
             propertySpec.setAll(Boolean.FALSE);
             propertySpec.getPathSet().add("summary");
@@ -441,7 +442,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             Collection<Folder> folders = new ArrayList<Folder>();
 
             // Create Property Spec
-            List<PropertySpec> pSpecs = new ArrayList<>();
+            List<PropertySpec> pSpecs = new ArrayList<PropertySpec>();
             PropertySpec propertySpec = new PropertySpec();
             propertySpec.setAll(Boolean.FALSE);
             propertySpec.getPathSet().add("name");
