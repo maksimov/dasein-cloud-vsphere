@@ -55,6 +55,11 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
         this.provider = provider;
     }
 
+    public List<ObjectContent> retrieveObjectList(Vsphere provider, @Nonnull String baseFolder, @Nullable List<SelectionSpec> selectionSpecsArr, @Nonnull List<PropertySpec> pSpecs) throws InternalException, CloudException {
+        VsphereInventoryNavigation nav = new VsphereInventoryNavigation();
+        return nav.retrieveObjectList(provider, baseFolder, selectionSpecsArr, pSpecs);
+    }
+
     @Override
     public @Nullable DataCenter getDataCenter(@Nonnull String dataCenterId) throws InternalException, CloudException {
         for( Region region : listRegions() ) {
@@ -79,7 +84,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
 
     @Override
     public @Nonnull Collection<DataCenter> listDataCenters(@Nonnull String providerRegionId) throws InternalException, CloudException {
-        APITrace.begin(provider, "listDataCenters");
+        APITrace.begin(getProvider(), "listDataCenters");
         try {
 
             Region region = getRegion(providerRegionId);
@@ -87,26 +92,18 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             if( region == null ) {
                 throw new CloudException("No such region: " + providerRegionId);
             }
-            ProviderContext ctx = provider.getContext();
+          /*  ProviderContext ctx = getProvider().getContext();
 
             if( ctx == null ) {
                 throw new NoContextException();
             }
-            Cache<DataCenter> cache = Cache.getInstance(provider, "dataCenters", DataCenter.class, CacheLevel.REGION_ACCOUNT, new TimePeriod<Day>(1, TimePeriod.DAY));
+            Cache<DataCenter> cache = Cache.getInstance(getProvider(), "dataCenters", DataCenter.class, CacheLevel.REGION_ACCOUNT, new TimePeriod<Day>(1, TimePeriod.DAY));
             Collection<DataCenter> dcList = (Collection<DataCenter>)cache.get(ctx);
 
             if( dcList != null ) {
                 return dcList;
-            }
+            }   */
             ArrayList<DataCenter> dataCenters = new ArrayList<DataCenter>();
-
-            VsphereConnection vsphereConnection = provider.getServiceInstance();
-            ServiceContent serviceContent = vsphereConnection.getServiceContent();
-            VimPortType vimPortType = vsphereConnection.getVimPort();
-
-            ManagedObjectReference rootFolder = serviceContent.getRootFolder();
-
-            TraversalSpec traversalSpec = getHostFolderTraversalSpec();
 
             // Create Property Spec
             List<PropertySpec>  pSpecs = new ArrayList<PropertySpec>();
@@ -117,7 +114,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             propertySpec.setType("ClusterComputeResource");
             pSpecs.add(propertySpec);
 
-            List<ObjectContent> listobcont = getObjectList(rootFolder, traversalSpec, pSpecs, vimPortType);
+            List<ObjectContent> listobcont = retrieveObjectList(provider, "hostFolder", null, pSpecs);
 
             if (listobcont != null) {
                 for (ObjectContent oc : listobcont) {
@@ -130,12 +127,13 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
                                 dcnm = (String) dp.getVal();
                             }
                             else if (dp.getName().equals("overallStatus")) {
-                                status = (String) dp.getVal();
+                                ManagedEntityStatus mes = (ManagedEntityStatus) dp.getVal();
+                                status = mes.value();
                             }
-                            DataCenter dc = toDataCenter(mr.getValue(), dcnm, providerRegionId, status);
-                            if ( dc != null ) {
-                                dataCenters.add(dc);
-                            }
+                        }
+                        DataCenter dc = toDataCenter(mr.getValue(), dcnm, providerRegionId, status);
+                        if ( dc != null ) {
+                            dataCenters.add(dc);
                         }
                     }
                 }
@@ -146,7 +144,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
                 DataCenter dc = toDataCenter(providerRegionId+"-a", region.getName(), providerRegionId, "active");
                 dataCenters.add(dc);
             }
-            cache.put(ctx, dataCenters);
+          //  cache.put(ctx, dataCenters);
             return dataCenters;
         }
         finally {
@@ -160,7 +158,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     public Collection<Region> listRegions() throws InternalException, CloudException {
         APITrace.begin(provider, "listRegions");
         try {
-            ProviderContext ctx = provider.getContext();
+            /*ProviderContext ctx = provider.getContext();
 
             if( ctx == null ) {
                 throw new NoContextException(); 
@@ -170,16 +168,9 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
 
             if( regions != null ) {
                 return regions;
-            }
-            regions = new ArrayList<Region>();
+            } */
+            Collection<Region> regions = new ArrayList<Region>();
 
-            VsphereConnection vsphereConnection = provider.getServiceInstance();
-            ServiceContent serviceContent = vsphereConnection.getServiceContent();
-            VimPortType vimPortType = vsphereConnection.getVimPort();
-
-            ManagedObjectReference rootFolder = serviceContent.getRootFolder();
-
-            TraversalSpec traversalSpec = getVmFolderTraversalSpec();
             // Create Property Spec
             List<PropertySpec> pSpecs = new ArrayList<PropertySpec>();
             PropertySpec propertySpec = new PropertySpec();
@@ -188,8 +179,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             propertySpec.setType("Datacenter");
             pSpecs.add(propertySpec);
 
-            List<ObjectContent> listobcont = getObjectList(rootFolder, traversalSpec, pSpecs, vimPortType);
-
+            List<ObjectContent> listobcont = retrieveObjectList(provider, "hostFolder", null, pSpecs);
             if (listobcont != null) {
                for (ObjectContent oc : listobcont) {
                   ManagedObjectReference mr = oc.getObj();
@@ -208,7 +198,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
                   }
                }
             }
-            cache.put(ctx, regions);
+          //  cache.put(ctx, regions);
             return regions;
 
         } catch (Exception e) {
@@ -229,7 +219,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     public Iterable<ResourcePool> listResourcePools(String providerDataCenterId) throws InternalException, CloudException {
         APITrace.begin(provider, "listResourcePools");
         try {
-            ProviderContext ctx = provider.getContext();
+           /* ProviderContext ctx = provider.getContext();
 
             if( ctx == null ) {
                 throw new NoContextException();
@@ -239,16 +229,8 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
 
             if( resourcePools != null ) {
                 return resourcePools;
-            }
-            resourcePools = new ArrayList<ResourcePool>();
-
-            VsphereConnection vsphereConnection = provider.getServiceInstance();
-            ServiceContent serviceContent = vsphereConnection.getServiceContent();
-            VimPortType vimPortType = vsphereConnection.getVimPort();
-
-            ManagedObjectReference rootFolder = serviceContent.getRootFolder();
-
-            TraversalSpec traversalSpec = getHostFolderTraversalSpec();
+            }  */
+            Collection<ResourcePool> resourcePools = new ArrayList<ResourcePool>();
 
             // Recurse through all ResourcePools
             SelectionSpec sSpec = new SelectionSpec();
@@ -273,7 +255,6 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             selectionSpecsArr.add(rpToRp);
             selectionSpecsArr.add(crToRp);
 
-            traversalSpec.getSelectSet().addAll(selectionSpecsArr);
             // Create Property Spec
             List<PropertySpec> pSpecs = new ArrayList<PropertySpec>();
             PropertySpec propertySpec = new PropertySpec();
@@ -284,7 +265,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             propertySpec.setType("ResourcePool");
             pSpecs.add(propertySpec);
 
-            List<ObjectContent> listobcont = getObjectList(rootFolder, traversalSpec, pSpecs, vimPortType);
+            List<ObjectContent> listobcont = retrieveObjectList(provider, "hostFolder", selectionSpecsArr, pSpecs);
 
             if (listobcont != null) {
                 for (ObjectContent oc : listobcont) {
@@ -308,12 +289,12 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
                         }
                     }
                     ResourcePool resourcePool = toResourcePool(rpId, rpName, owner, rpStatus);
-                    if ( resourcePool != null && resourcePool.getDataCenterId().equals(providerDataCenterId)) {
+                    if ( resourcePool != null && (providerDataCenterId == null || resourcePool.getDataCenterId().equals(providerDataCenterId)) ) {
                         resourcePools.add(resourcePool);
                     }
                 }
             }
-            cache.put(ctx, resourcePools);
+          //  cache.put(ctx, resourcePools);
             return resourcePools;
 
         } catch (Exception e) {
@@ -329,14 +310,10 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     public ResourcePool getResourcePool(String providerResourcePoolId) throws InternalException, CloudException {
         APITrace.begin(provider, "DataCenters.getResourcePool");
         try {
-            Iterable<DataCenter> dcs = listDataCenters(getContext().getRegionId());
-
-            for (DataCenter dc : dcs) {
-                Iterable<org.dasein.cloud.dc.ResourcePool> rps = listResourcePools(dc.getProviderDataCenterId());
-                for (org.dasein.cloud.dc.ResourcePool rp : rps) {
-                    if (rp.getProvideResourcePoolId().equals(providerResourcePoolId)) {
-                        return rp;
-                    }
+            Iterable<org.dasein.cloud.dc.ResourcePool> rps = listResourcePools(null);
+            for (org.dasein.cloud.dc.ResourcePool rp : rps) {
+                if (rp.getProvideResourcePoolId().equals(providerResourcePoolId)) {
+                    return rp;
                 }
             }
             return null;
@@ -350,7 +327,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     public Collection<StoragePool> listStoragePools() throws InternalException, CloudException {
         APITrace.begin(provider, "listStoragePools");
         try {
-            ProviderContext ctx = provider.getContext();
+           /* ProviderContext ctx = provider.getContext();
 
             if( ctx == null ) {
                 throw new NoContextException();
@@ -360,16 +337,8 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
 
             if( storagePools != null ) {
                 return storagePools;
-            }
-            storagePools = new ArrayList<StoragePool>();
-
-            VsphereConnection vsphereConnection = provider.getServiceInstance();
-            ServiceContent serviceContent = vsphereConnection.getServiceContent();
-            VimPortType vimPortType = vsphereConnection.getVimPort();
-
-            ManagedObjectReference rootFolder = serviceContent.getRootFolder();
-
-            TraversalSpec traversalSpec = getHostFolderTraversalSpec();
+            } */
+            Collection<StoragePool> storagePools = new ArrayList<StoragePool>();
 
             // DC -> DS
             TraversalSpec dcToDs = new TraversalSpec();
@@ -381,7 +350,6 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             List<SelectionSpec> selectionSpecsArr = new ArrayList<SelectionSpec>();
             selectionSpecsArr.add(dcToDs);
 
-            traversalSpec.getSelectSet().addAll(selectionSpecsArr);
             // Create Property Spec
             List<PropertySpec> pSpecs = new ArrayList<PropertySpec>();
             PropertySpec propertySpec = new PropertySpec();
@@ -391,7 +359,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             propertySpec.setType("Datastore");
             pSpecs.add(propertySpec);
 
-            List<ObjectContent> listobcont = getObjectList(rootFolder, traversalSpec, pSpecs, vimPortType);
+            List<ObjectContent> listobcont = retrieveObjectList(provider, "hostFolder", selectionSpecsArr, pSpecs);
 
             if (listobcont != null) {
                 for (ObjectContent oc : listobcont) {
@@ -426,7 +394,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
                     }
                 }
             }
-            cache.put(ctx, storagePools);
+           // cache.put(ctx, storagePools);
             return storagePools;
 
         } catch (Exception e) {
@@ -459,27 +427,19 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     public Collection<Folder> listVMFolders() throws InternalException, CloudException {
         APITrace.begin(provider, "listVMFolders");
         try {
-            ProviderContext ctx = provider.getContext();
+          /*  ProviderContext ctx = provider.getContext();
 
             if( ctx == null ) {
                 throw new NoContextException();
             }
             Cache<Folder> cache = Cache.getInstance(provider, "folders", Folder.class, CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(10, TimePeriod.HOUR));
-            Collection<Folder> folders = (Collection<Folder>)cache.get(ctx);
+            Collection<Folder> folders = (Collection<Folder>)cache.get(ctx);*/
             Map<String, Folder> folderMap = new HashMap<String, Folder>();
 
-            if( folders != null ) {
+           /* if( folders != null ) {
                 return folders;
-            }
-            folders = new ArrayList<Folder>();
-
-            VsphereConnection vsphereConnection = provider.getServiceInstance();
-            ServiceContent serviceContent = vsphereConnection.getServiceContent();
-            VimPortType vimPortType = vsphereConnection.getVimPort();
-
-            ManagedObjectReference rootFolder = serviceContent.getRootFolder();
-
-            TraversalSpec traversalSpec = getVmFolderTraversalSpec();
+            } */
+            Collection<Folder> folders = new ArrayList<Folder>();
 
             // Create Property Spec
             List<PropertySpec> pSpecs = new ArrayList<PropertySpec>();
@@ -491,7 +451,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             propertySpec.setType("Folder");
             pSpecs.add(propertySpec);
 
-            List<ObjectContent> listobcont = getObjectList(rootFolder, traversalSpec, pSpecs, vimPortType);
+            List<ObjectContent> listobcont = retrieveObjectList(provider, "vmFolder", null, pSpecs);
 
             if (listobcont != null) {
                 for (ObjectContent oc : listobcont) {
@@ -548,7 +508,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
                     f.setChildren(children);
                 }
             }
-            cache.put(ctx, folders);
+           // cache.put(ctx, folders);
             return folders;
 
         } catch (Exception e) {
@@ -577,94 +537,6 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
         }
     }
 
-    //todo move this into a separate class for inventory navigation
-    public  @Nonnull TraversalSpec getHostFolderTraversalSpec() {
-        // Create a traversal spec that starts from the 'root' objects
-        SelectionSpec sSpec = new SelectionSpec();
-        sSpec.setName("VisitFolders");
-
-
-        TraversalSpec dataCenterToHostFolder = new TraversalSpec();
-        dataCenterToHostFolder.setName("DataCenterToHostFolder");
-        dataCenterToHostFolder.setType("Datacenter");
-        dataCenterToHostFolder.setPath("hostFolder");
-        dataCenterToHostFolder.setSkip(false);
-        dataCenterToHostFolder.getSelectSet().add(sSpec);
-
-        TraversalSpec traversalSpec = new TraversalSpec();
-        traversalSpec.setName("VisitFolders");
-        traversalSpec.setType("Folder");
-        traversalSpec.setPath("childEntity");
-        traversalSpec.setSkip(false);
-        List<SelectionSpec> sSpecArr = new ArrayList<SelectionSpec>();
-        sSpecArr.add(sSpec);
-        sSpecArr.add(dataCenterToHostFolder);
-        traversalSpec.getSelectSet().addAll(sSpecArr);
-        return traversalSpec;
-    }
-
-    //todo move this into a separate class for inventory navigation
-    private @Nonnull TraversalSpec getVmFolderTraversalSpec() {
-        // Create a traversal spec that starts from the 'root' objects
-        SelectionSpec sSpec = new SelectionSpec();
-        sSpec.setName("VisitFolders");
-
-
-        TraversalSpec dataCenterToHostFolder = new TraversalSpec();
-        dataCenterToHostFolder.setName("DataCenterToVmFolder");
-        dataCenterToHostFolder.setType("Datacenter");
-        dataCenterToHostFolder.setPath("vmFolder");
-        dataCenterToHostFolder.setSkip(false);
-        dataCenterToHostFolder.getSelectSet().add(sSpec);
-
-        TraversalSpec traversalSpec = new TraversalSpec();
-        traversalSpec.setName("VisitFolders");
-        traversalSpec.setType("Folder");
-        traversalSpec.setPath("childEntity");
-        traversalSpec.setSkip(false);
-        List<SelectionSpec> sSpecArr = new ArrayList<SelectionSpec>();
-        sSpecArr.add(sSpec);
-        sSpecArr.add(dataCenterToHostFolder);
-        traversalSpec.getSelectSet().addAll(sSpecArr);
-        return traversalSpec;
-    }
-
-    //todo move this into a separate class for inventory navigation
-    public @Nullable List<ObjectContent> getObjectList(@Nonnull ManagedObjectReference rootFolder, @Nonnull TraversalSpec traversalSpec, @Nonnull List<PropertySpec> propertySpec, @Nonnull VimPortType vimPortType) throws CloudException{
-        // Now create Object Spec
-        ObjectSpec objectSpec = new ObjectSpec();
-        objectSpec.setObj(rootFolder);
-        objectSpec.setSkip(Boolean.TRUE);
-        objectSpec.getSelectSet().add(traversalSpec);
-
-        // Create PropertyFilterSpec using the PropertySpec and ObjectPec
-        // created above.
-        PropertyFilterSpec propertyFilterSpec = new PropertyFilterSpec();
-        propertyFilterSpec.getPropSet().addAll(propertySpec);
-        propertyFilterSpec.getObjectSet().add(objectSpec);
-
-        List<PropertyFilterSpec> listfps = new ArrayList<PropertyFilterSpec>(1);
-        listfps.add(propertyFilterSpec);
-        ServiceContent vimServiceContent = null;
-        try {
-            ManagedObjectReference ref = new ManagedObjectReference();
-            ref.setType(VIMSERVICEINSTANCETYPE);
-            ref.setValue(VIMSERVICEINSTANCEVALUE);
-            vimServiceContent = vimPortType.retrieveServiceContent(ref);
-        } catch ( RuntimeFaultFaultMsg e ) {
-            throw new CloudException(e);
-        }
-        List<ObjectContent> listobcont = null;
-        try {
-            listobcont = vimPortType.retrieveProperties(vimServiceContent.getPropertyCollector(), listfps);
-        } catch ( InvalidPropertyFaultMsg e ) {
-            throw new CloudException(e);
-        } catch ( RuntimeFaultFaultMsg e ) {
-            throw new CloudException(e);
-        }
-        return listobcont;
-    }
-
     private @Nullable Region toRegion(@Nonnull String regionId, @Nonnull String regionName ) {
         Region region = new Region();
         region.setActive(true);
@@ -676,7 +548,10 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     }
 
     private @Nullable DataCenter toDataCenter(@Nonnull String dataCenterId, @Nonnull String datacenterName, @Nonnull String regionId, @Nonnull String status) {
-        boolean available = (!status.equalsIgnoreCase("red") && !status.equalsIgnoreCase("yellow"));
+        boolean available = true;
+        if (status != null) {
+            available = (!status.equalsIgnoreCase("red") && !status.equalsIgnoreCase("yellow"));
+        }
         DataCenter dc = new DataCenter(dataCenterId, datacenterName, regionId, available, available);
         return dc;
     }

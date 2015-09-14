@@ -16,10 +16,7 @@ import org.dasein.cloud.dc.DataCenterServices;
 import org.dasein.cloud.util.APITrace;
 import org.dasein.cloud.util.Cache;
 import org.dasein.cloud.util.CacheLevel;
-import org.dasein.cloud.vsphere.DataCenters;
-import org.dasein.cloud.vsphere.NoContextException;
-import org.dasein.cloud.vsphere.Vsphere;
-import org.dasein.cloud.vsphere.VsphereConnection;
+import org.dasein.cloud.vsphere.*;
 import org.dasein.util.uom.time.Day;
 import org.dasein.util.uom.time.TimePeriod;
 
@@ -80,16 +77,7 @@ public class HostSupport extends AbstractAffinityGroupSupport<Vsphere> {
             }
             List<AffinityGroup> hosts = new ArrayList<AffinityGroup>();
 
-            //todo should access traversal methods from a standalone class instead of piggybacking
-            DataCenters dcSupport = provider.getDataCenterServices();
-
-            VsphereConnection vsphereConnection = provider.getServiceInstance();
-            ServiceContent serviceContent = vsphereConnection.getServiceContent();
-            VimPortType vimPortType = vsphereConnection.getVimPort();
-
-            ManagedObjectReference rootFolder = serviceContent.getRootFolder();
-            //todo see above
-            TraversalSpec traversalSpec = dcSupport.getHostFolderTraversalSpec();
+            VsphereInventoryNavigation nav = new VsphereInventoryNavigation();
 
             TraversalSpec crToH = new TraversalSpec();
             crToH.setSkip(Boolean.FALSE);
@@ -99,7 +87,6 @@ public class HostSupport extends AbstractAffinityGroupSupport<Vsphere> {
 
             List<SelectionSpec> selectionSpecsArr = new ArrayList<SelectionSpec>();
             selectionSpecsArr.add(crToH);
-            traversalSpec.getSelectSet().addAll(selectionSpecsArr);
 
             List<PropertySpec> pSpecs = new ArrayList<PropertySpec>();
             // Create Property Spec
@@ -117,8 +104,7 @@ public class HostSupport extends AbstractAffinityGroupSupport<Vsphere> {
             propertySpec2.setType("ClusterComputeResource");
             pSpecs.add(propertySpec2);
 
-            //todo see above
-            List<ObjectContent> listobcont = dcSupport.getObjectList(rootFolder, traversalSpec, pSpecs, vimPortType);
+            List<ObjectContent> listobcont = nav.retrieveObjectList(provider, "hostFolder", selectionSpecsArr, pSpecs);
 
             if (listobcont != null) {
                 for (ObjectContent oc : listobcont) {
