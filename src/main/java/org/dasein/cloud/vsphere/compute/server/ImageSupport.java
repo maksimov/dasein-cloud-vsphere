@@ -54,6 +54,7 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
 
     public ImageSupport(Vsphere provider) {
         super(provider);
+
         this.provider = provider;
         try {
             vsphereConnection = provider.getServiceInstance();
@@ -64,8 +65,11 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
         }
         vimPort = vsphereConnection.getVimPort();
         serviceContent = vsphereConnection.getServiceContent();
-        
     }
+
+    public ImageSupport() { 
+        super(null);
+    }  // for mock testing NEVER use....
 
     @Override
     public VsphereImageCapabilities getCapabilities() throws CloudException, InternalException {
@@ -203,18 +207,18 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
             // get the data from the server
             RetrieveResult props = retrievePropertiesEx(getPropertyCollector(), fSpecList, new RetrieveOptions());
             
-            ObjectMapper mapper = new ObjectMapper().setVisibility(JsonMethod.FIELD, Visibility.ANY);
-            mapper.configure(Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            mapper.enableDefaultTypingAsProperty(DefaultTyping.OBJECT_AND_NON_CONCRETE, "type");
+            //ObjectMapper mapper = new ObjectMapper().setVisibility(JsonMethod.FIELD, Visibility.ANY);
+            //mapper.configure(Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            //mapper.enableDefaultTypingAsProperty(DefaultTyping.OBJECT_AND_NON_CONCRETE, "type");
             
             //System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(props));
             //RetrieveResult mockProps = mapper.readValue(mapper.writeValueAsString(props), RetrieveResult.class);
-            RetrieveResult rr = mapper.readValue(new File("src/test/resources/ImageSupport/propertiesEx.json"), RetrieveResult.class);
-            if (rr != null) {
-                for (ObjectContent oc : (List<ObjectContent>)rr.getObjects()) {
+            //RetrieveResult rr = mapper.readValue(new File("src/test/resources/ImageSupport/propertiesEx.json"), RetrieveResult.class);
+            if (props != null) {
+                for (ObjectContent oc : props.getObjects()) {
                     String name = null;
                     Object value = null;
-                    List<DynamicProperty> dps = (List<DynamicProperty>)oc.getPropSet();
+                    List<DynamicProperty> dps = oc.getPropSet();
                     if (dps != null) {
                          VirtualMachineSummary virtualMachineSummary = null;
                          VirtualMachineConfigSummary virtualMachineConfigSummary = null;
