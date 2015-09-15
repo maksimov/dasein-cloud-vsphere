@@ -276,6 +276,9 @@
           <excludes>
             <exclude>**/TestSuite.class</exclude>
           </excludes>
+          <includes>
+            <include>**/**Test.class</include>
+          </includes>
         </configuration>
       </plugin>
 
@@ -335,6 +338,9 @@
               <value>${insecure}</value>
             </property>
           </systemProperties>
+          <excludes>
+            <exclude>**/org.dasein.cloud.vsphere/**Test.class</exclude>
+          </excludes>
           <includes>
             <include>**/TestSuite.java</include>
           </includes>
