@@ -65,9 +65,8 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
         }
         vimPort = vsphereConnection.getVimPort();
         serviceContent = vsphereConnection.getServiceContent();
-        
     }
-    
+
     public ImageSupport() { 
         super(null);
     }  // for mock testing NEVER use....
