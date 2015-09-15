@@ -3,6 +3,9 @@ package org.dasein.cloud.vsphere.compute;
 import com.vmware.vim25.*;
 
 import org.apache.log4j.Logger;
+import org.codehaus.jackson.annotate.JsonAutoDetect;
+import org.codehaus.jackson.annotate.JsonMethod;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.OperationNotSupportedException;
@@ -23,10 +26,9 @@ import org.dasein.util.uom.time.TimePeriod;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
 
 /**
  * User: daniellemayne
@@ -57,7 +59,12 @@ public class HostSupport extends AbstractAffinityGroupSupport<Vsphere> {
     @Nonnull
     @Override
     public AffinityGroup get(@Nonnull String affinityGroupId) throws InternalException, CloudException {
-        return super.get(affinityGroupId);    //To change body of overridden methods use File | Settings | File Templates.
+        for (AffinityGroup ag : list(AffinityGroupFilterOptions.getInstance())) {
+            if (ag.getAffinityGroupId().equals(affinityGroupId)) {
+                return ag;
+            }
+        }
+        return null;
     }
 
     @Nonnull
@@ -104,12 +111,15 @@ public class HostSupport extends AbstractAffinityGroupSupport<Vsphere> {
             propertySpec2.setType("ClusterComputeResource");
             pSpecs.add(propertySpec2);
 
-            List<ObjectContent> listobcont = nav.retrieveObjectList(provider, "hostFolder", selectionSpecsArr, pSpecs);
+            RetrieveResult listobcont = nav.retrieveObjectList(provider, "hostFolder", selectionSpecsArr, pSpecs);
 
             if (listobcont != null) {
-                for (ObjectContent oc : listobcont) {
+                List<AffinityGroup> temp = new ArrayList<AffinityGroup>();
+                Map<String, List<String>> dcToHostMap = new HashMap<String, List<String>>();
+
+                for (ObjectContent oc : listobcont.getObjects()) {
                     ManagedObjectReference mr = oc.getObj();
-                    if (mr.getType().equals("Host")) {
+                    if (mr.getType().equals("HostSystem")) {
                         String hostName = null, status = null;
                         List<DynamicProperty> dps = oc.getPropSet();
                         if (dps != null) {
@@ -118,12 +128,14 @@ public class HostSupport extends AbstractAffinityGroupSupport<Vsphere> {
                                     hostName = (String) dp.getVal();
                                 }
                                 else if (dp.getName().equals("overallStatus")) {
-                                    status = (String) dp.getVal();
+                                    ManagedEntityStatus mes = (ManagedEntityStatus) dp.getVal();
+                                    status = mes.value();
                                 }
-                                AffinityGroup host = toAffinityGroup(mr.getValue(), hostName, status, "tempDC");
-                                if ( host != null ) {
-                                    hosts.add(host);
-                                }
+
+                            }
+                            AffinityGroup host = toAffinityGroup(mr.getValue(), hostName, status, "tempDC");
+                            if ( host != null ) {
+                                temp.add(host);
                             }
                         }
                     }
@@ -131,8 +143,28 @@ public class HostSupport extends AbstractAffinityGroupSupport<Vsphere> {
                         List<DynamicProperty> dps = oc.getPropSet();
                         if (dps != null) {
                             for (DynamicProperty dp : dps) {
-                                //TODO pull out dc and host mappings so we can set the correct dcId for each host
+                                ArrayOfManagedObjectReference lMor = (ArrayOfManagedObjectReference) dp.getVal();
+                                List<ManagedObjectReference> list = lMor.getManagedObjectReference();
+                                List<String> hostIdList = new ArrayList<String>();
+                                for (ManagedObjectReference mor : list) {
+                                    hostIdList.add(mor.getValue());
+                                }
+                                dcToHostMap.put(mr.getValue(), hostIdList);
                             }
+                        }
+                    }
+                }
+
+                for (AffinityGroup host: temp) {
+                    String id = host.getAffinityGroupId();
+                    for (Map.Entry e : dcToHostMap.entrySet()) {
+                        List<String> ids = (List<String>) e.getValue();
+                        if (ids.contains(id)) {
+                            host = AffinityGroup.getInstance(host.getAffinityGroupId(), host.getAffinityGroupName(), host.getDescription(), (String) e.getKey(), host.getCreationTimestamp());
+                            if (options.matches(host)) {
+                                hosts.add(host);
+                            }
+                            break;
                         }
                     }
                 }

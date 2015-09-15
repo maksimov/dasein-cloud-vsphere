@@ -21,10 +21,16 @@ package org.dasein.cloud.vsphere;
 
 import com.vmware.vim25.*;
 
+import org.apache.commons.collections.IteratorUtils;
 import org.apache.log4j.Logger;
+import org.codehaus.jackson.annotate.JsonAutoDetect;
+import org.codehaus.jackson.annotate.JsonMethod;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.ProviderContext;
+import org.dasein.cloud.compute.AffinityGroup;
+import org.dasein.cloud.compute.AffinityGroupFilterOptions;
 import org.dasein.cloud.dc.*;
 import org.dasein.cloud.util.APITrace;
 import org.dasein.cloud.util.Cache;
@@ -38,6 +44,8 @@ import org.dasein.util.uom.time.TimePeriod;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -55,7 +63,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
         this.provider = provider;
     }
 
-    public List<ObjectContent> retrieveObjectList(Vsphere provider, @Nonnull String baseFolder, @Nullable List<SelectionSpec> selectionSpecsArr, @Nonnull List<PropertySpec> pSpecs) throws InternalException, CloudException {
+    public RetrieveResult retrieveObjectList(Vsphere provider, @Nonnull String baseFolder, @Nullable List<SelectionSpec> selectionSpecsArr, @Nonnull List<PropertySpec> pSpecs) throws InternalException, CloudException {
         VsphereInventoryNavigation nav = new VsphereInventoryNavigation();
         return nav.retrieveObjectList(provider, baseFolder, selectionSpecsArr, pSpecs);
     }
@@ -114,10 +122,10 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             propertySpec.setType("ClusterComputeResource");
             pSpecs.add(propertySpec);
 
-            List<ObjectContent> listobcont = retrieveObjectList(provider, "hostFolder", null, pSpecs);
+            RetrieveResult listobcont = retrieveObjectList(provider, "hostFolder", null, pSpecs);
 
             if (listobcont != null) {
-                for (ObjectContent oc : listobcont) {
+                for (ObjectContent oc : listobcont.getObjects()) {
                     ManagedObjectReference mr = oc.getObj();
                     String dcnm = null, status = null;
                     List<DynamicProperty> dps = oc.getPropSet();
@@ -179,9 +187,10 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             propertySpec.setType("Datacenter");
             pSpecs.add(propertySpec);
 
-            List<ObjectContent> listobcont = retrieveObjectList(provider, "hostFolder", null, pSpecs);
+            RetrieveResult listobcont = retrieveObjectList(provider, "hostFolder", null, pSpecs);
+
             if (listobcont != null) {
-               for (ObjectContent oc : listobcont) {
+               for (ObjectContent oc : listobcont.getObjects()) {
                   ManagedObjectReference mr = oc.getObj();
                   String dcnm = null;
                   List<DynamicProperty> dps = oc.getPropSet();
@@ -265,10 +274,10 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             propertySpec.setType("ResourcePool");
             pSpecs.add(propertySpec);
 
-            List<ObjectContent> listobcont = retrieveObjectList(provider, "hostFolder", selectionSpecsArr, pSpecs);
+            RetrieveResult listobcont = retrieveObjectList(provider, "hostFolder", selectionSpecsArr, pSpecs);
 
             if (listobcont != null) {
-                for (ObjectContent oc : listobcont) {
+                for (ObjectContent oc : listobcont.getObjects()) {
                     ManagedObjectReference rpRef = oc.getObj();
                     String rpId = rpRef.getValue();
                     String rpName = null, rpStatus = null, owner = null;
@@ -359,14 +368,15 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             propertySpec.setType("Datastore");
             pSpecs.add(propertySpec);
 
-            List<ObjectContent> listobcont = retrieveObjectList(provider, "hostFolder", selectionSpecsArr, pSpecs);
+            RetrieveResult listobcont = retrieveObjectList(provider, "hostFolder", selectionSpecsArr, pSpecs);
 
             if (listobcont != null) {
-                for (ObjectContent oc : listobcont) {
+                Iterable<AffinityGroup> allHosts = provider.getComputeServices().getAffinityGroupSupport().list(AffinityGroupFilterOptions.getInstance());
+                for (ObjectContent oc : listobcont.getObjects()) {
                     ManagedObjectReference dsRef = oc.getObj();
                     String dsId = dsRef.getValue();
                     DatastoreSummary dsSummary = null;
-                    String hostId = null, dataCenterId = null;
+                    String datastoreHostId = null, datastoreDataCenterId = null;
                     List<DynamicProperty> dps = oc.getPropSet();
                     if (dps != null) {
                         for (DynamicProperty dp : dps) {
@@ -377,18 +387,42 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
                                 ArrayOfDatastoreHostMount dhm = (ArrayOfDatastoreHostMount) dp.getVal();
                                 List<DatastoreHostMount> list = dhm.getDatastoreHostMount();
                                 if (list.size() == 1) {
-                                    hostId = list.get(0).getKey().getValue();
-                                    //todo get datacenter of host and set datacenterId
+                                    datastoreHostId = list.get(0).getKey().getValue();
+                                    List<AffinityGroup> myTempList = IteratorUtils.toList(allHosts.iterator());
+                                    for (AffinityGroup host : myTempList) {
+                                        if (datastoreHostId.equals(host.getAffinityGroupId())) {
+                                            datastoreDataCenterId = host.getDataCenterId();
+                                            break;
+                                        }
+                                    }
                                 }
                                 else {
-                                    //todo
-                                    // loop over each host, check its datacenter and if all the same => set datacenterId
-                                    // other wise datacenterId remains null as it means the datastore is shared
+                                    boolean shared = false, firstTime= true;
+                                    for (DatastoreHostMount mount : list) {
+                                        String hostMountId = mount.getKey().getValue();
+                                        List<AffinityGroup> myTempList = IteratorUtils.toList(allHosts.iterator());
+                                        for (AffinityGroup host : myTempList) {
+                                            if (hostMountId.equals(host.getAffinityGroupId())) {
+                                                if (datastoreDataCenterId != null && !datastoreDataCenterId.equals(host.getDataCenterId())) {
+                                                    datastoreDataCenterId = null;
+                                                    shared = true;
+                                                }
+                                                else if (firstTime){
+                                                    datastoreDataCenterId = host.getDataCenterId();
+                                                    firstTime=false;
+                                                }
+                                                break;
+                                            }
+                                        }
+                                        if (shared) {
+                                            break;
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
-                    StoragePool storagePool = toStoragePool(dsSummary, dsId, hostId, dataCenterId);
+                    StoragePool storagePool = toStoragePool(dsSummary, dsId, datastoreHostId, datastoreDataCenterId);
                     if ( storagePool != null ) {
                         storagePools.add(storagePool);
                     }
@@ -451,10 +485,10 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             propertySpec.setType("Folder");
             pSpecs.add(propertySpec);
 
-            List<ObjectContent> listobcont = retrieveObjectList(provider, "vmFolder", null, pSpecs);
+            RetrieveResult listobcont = retrieveObjectList(provider, "vmFolder", null, pSpecs);
 
             if (listobcont != null) {
-                for (ObjectContent oc : listobcont) {
+                for (ObjectContent oc : listobcont.getObjects()) {
                     ManagedObjectReference fRef = oc.getObj();
                     String folderId = fRef.getValue();
                     String folderName = null, folderParent = null;
@@ -550,7 +584,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     private @Nullable DataCenter toDataCenter(@Nonnull String dataCenterId, @Nonnull String datacenterName, @Nonnull String regionId, @Nonnull String status) {
         boolean available = true;
         if (status != null) {
-            available = (!status.equalsIgnoreCase("red") && !status.equalsIgnoreCase("yellow"));
+            available = (!status.equalsIgnoreCase("red"));
         }
         DataCenter dc = new DataCenter(dataCenterId, datacenterName, regionId, available, available);
         return dc;
