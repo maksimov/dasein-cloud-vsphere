@@ -15,7 +15,6 @@ public class VsphereCompute extends AbstractComputeServices<Vsphere> {
 
     public VsphereCompute(Vsphere provider) {
         super(provider);
-        // TODO Auto-generated constructor stub
     }
 
     @Nullable

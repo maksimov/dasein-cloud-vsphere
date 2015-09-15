@@ -73,6 +73,13 @@
       <version>1.6.1</version>
     </dependency>
 
+    <dependency>
+      <groupId>org.codehaus.jackson</groupId>
+      <artifactId>jackson-mapper-asl</artifactId>
+      <version>1.9.13</version>
+    </dependency>
+
+
     <!-- Provided -->
     <dependency>
       <groupId>javax.servlet</groupId>
@@ -247,7 +254,7 @@
       </plugin>
 
       <!-- unit tests -->
-      <plugin>
+      <!-- <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.6</version>
@@ -256,13 +263,13 @@
             <exclude>**/TestSuite.class</exclude>
           </excludes>
           <includes>
-            <include>**/DataCentersTest.class</include>
+            <include>**/**Test.class</include>
           </includes>
         </configuration>
-      </plugin>
+      </plugin> -->
 
       <!-- integration tests -->
-      <!--<plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.6</version>
@@ -321,7 +328,7 @@
             <include>**/TestSuite.java</include>
           </includes>
         </configuration>
-      </plugin>  -->
+      </plugin>
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
