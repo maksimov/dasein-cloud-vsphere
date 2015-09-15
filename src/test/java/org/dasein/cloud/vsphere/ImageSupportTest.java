@@ -46,7 +46,9 @@ public class ImageSupportTest {
         mapper.enableDefaultTypingAsProperty(DefaultTyping.OBJECT_AND_NON_CONCRETE, "type");
         try {
             return (T) mapper.readValue(new File(filename), valueType);
-        } catch ( Exception e ) { }
+        } catch ( Exception e ) { 
+            fail("Unable to read file " + filename + ", error=" + e.getMessage());
+        }
         return null;
     }
 
