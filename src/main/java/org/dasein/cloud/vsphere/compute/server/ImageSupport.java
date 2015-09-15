@@ -105,7 +105,7 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
 
         return viewManager;
     }
-    
+
     public ManagedObjectReference getRootFolder() {
         ManagedObjectReference rootFolder = serviceContent.getRootFolder();
 
@@ -153,7 +153,6 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
 
         return propertiesEx;
     }
-
 
     @Override
     public Iterable<MachineImage> listImages(ImageFilterOptions options) throws CloudException, InternalException {

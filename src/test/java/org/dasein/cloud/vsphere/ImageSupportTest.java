@@ -26,7 +26,6 @@ import com.vmware.vim25.RetrieveResult;
 import org.codehaus.jackson.map.DeserializationConfig.Feature;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.ObjectMapper.DefaultTyping;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -40,6 +39,17 @@ import mockit.*;
 @RunWith(JUnit4.class)
 public class ImageSupportTest {
 
+
+    public <T> T readJsonFile(String filename, Class<T> valueType) {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.enableDefaultTypingAsProperty(DefaultTyping.OBJECT_AND_NON_CONCRETE, "type");
+        try {
+            return (T) mapper.readValue(new File(filename), valueType);
+        } catch ( Exception e ) { }
+        return null;
+    }
+
     @Test
     public void testListImages() {
         ImageFilterOptions options = ImageFilterOptions.getInstance();
@@ -48,55 +58,28 @@ public class ImageSupportTest {
         new MockUp<ImageSupport>() {
 
             @Mock
-            public ManagedObjectReference getViewManager(){
-                ObjectMapper mapper = new ObjectMapper();
-                ManagedObjectReference mor = null;
-                try {
-                    mor = mapper.readValue(new File("src/test/resources/ImageSupport/viewManager.json"), ManagedObjectReference.class);
-                } catch ( Exception e ) { }
-                return mor;
+            public ManagedObjectReference getViewManager() {
+                return readJsonFile("src/test/resources/ImageSupport/viewManager.json", ManagedObjectReference.class);
             }
 
             @Mock
             private ManagedObjectReference getRootFolder() {
-                ObjectMapper mapper = new ObjectMapper();
-                ManagedObjectReference rf = null;
-                try {
-                    rf = mapper.readValue(new File("src/test/resources/ImageSupport/rootFolder.json"), ManagedObjectReference.class);
-                } catch ( Exception e ) { }
-                return rf;
+                return readJsonFile("src/test/resources/ImageSupport/rootFolder.json", ManagedObjectReference.class);
             }
 
             @Mock
             private ManagedObjectReference createContainerView(ManagedObjectReference viewManager, ManagedObjectReference rootFolder, List<String> vmList, boolean b) {
-                ObjectMapper mapper = new ObjectMapper();
-                ManagedObjectReference mor = null;
-                try {
-                    mor = mapper.readValue(new File("src/test/resources/ImageSupport/containerView.json"), ManagedObjectReference.class);
-                } catch ( Exception e ) { }
-                return mor;
+                return readJsonFile("src/test/resources/ImageSupport/containerView.json", ManagedObjectReference.class);
             }
 
             @Mock
             private ManagedObjectReference getPropertyCollector() {
-                ObjectMapper mapper = new ObjectMapper();
-                ManagedObjectReference mor = null;
-                try {
-                    mor = mapper.readValue(new File("src/test/resources/ImageSupport/propertyCollector.json"), ManagedObjectReference.class);
-                } catch ( Exception e ) { }
-                return mor;
+                return readJsonFile("src/test/resources/ImageSupport/propertyCollector.json", ManagedObjectReference.class);
             }
 
             @Mock
             private RetrieveResult retrievePropertiesEx(ManagedObjectReference propColl, List<PropertyFilterSpec> fSpecList, RetrieveOptions ro) {
-                ObjectMapper mapper = new ObjectMapper();
-                mapper.configure(Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-                mapper.enableDefaultTypingAsProperty(DefaultTyping.OBJECT_AND_NON_CONCRETE, "type");
-                RetrieveResult rr = null;
-                try {
-                    rr = mapper.readValue(new File("src/test/resources/ImageSupport/propertiesEx.json"), RetrieveResult.class);
-                } catch ( Exception e ) { }
-                return rr;
+                return readJsonFile("src/test/resources/ImageSupport/propertiesEx.json", RetrieveResult.class);
             }
         };
 
