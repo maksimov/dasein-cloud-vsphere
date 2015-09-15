@@ -47,9 +47,8 @@ public class ImageSupportTest {
         try {
             return (T) mapper.readValue(new File(filename), valueType);
         } catch ( Exception e ) { 
-            fail("Unable to read file " + filename + ", error=" + e.getMessage());
+            throw new RuntimeException("Unable to read file " + filename, e);
         }
-        return null;
     }
 
     @Test
