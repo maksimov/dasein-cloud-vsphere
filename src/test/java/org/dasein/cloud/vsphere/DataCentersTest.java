@@ -5,10 +5,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
-import com.vmware.vim25.DynamicProperty;
-import com.vmware.vim25.ManagedEntityStatus;
-import com.vmware.vim25.ManagedObjectReference;
-import com.vmware.vim25.ObjectContent;
+import com.vmware.vim25.*;
+import org.codehaus.jackson.annotate.JsonAutoDetect;
+import org.codehaus.jackson.annotate.JsonMethod;
+import org.codehaus.jackson.map.DeserializationConfig;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.dc.DataCenter;
@@ -17,6 +18,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,72 +30,26 @@ import java.util.List;
 @RunWith(JUnit4.class)
 public class DataCentersTest {
 
-    private List<ObjectContent> buildRegionList() {
-        List<ObjectContent> listobcont = new ArrayList<ObjectContent>();
-        ObjectContent objectContent = new ObjectContent();
-
-        ManagedObjectReference obj = new ManagedObjectReference();
-        obj.setType("Datacenter");
-        obj.setValue("datacenter-21");
-        objectContent.setObj(obj);
-
-        DynamicProperty prop = new DynamicProperty();
-        prop.setName("name");
-        prop.setVal("WTC");
-        List<DynamicProperty> propSet = new ArrayList<DynamicProperty>();
-        propSet.add(prop);
-
-        objectContent.getPropSet().addAll(propSet);
-        listobcont.add(objectContent);
-
-        return listobcont;
+    private RetrieveResult buildRegionList() {
+        ObjectMapper mapper = new ObjectMapper().setVisibility(JsonMethod.FIELD, JsonAutoDetect.Visibility.ANY);
+        mapper.configure(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.enableDefaultTypingAsProperty(ObjectMapper.DefaultTyping.OBJECT_AND_NON_CONCRETE, "type");
+        RetrieveResult rr = null;
+        try {
+            rr = mapper.readValue(new File("src/test/resources/DataCenters/regions.json"), RetrieveResult.class);
+        } catch ( Exception e ) { }
+        return rr;
     }
 
-    private List<ObjectContent> buildDataCenterList() {
-        List<ObjectContent> listobcont = new ArrayList<ObjectContent>();
-        ObjectContent objectContent = new ObjectContent();
-
-        ManagedObjectReference obj = new ManagedObjectReference();
-        obj.setType("ClusterComputeResource");
-        obj.setValue("domain-c26");
-        objectContent.setObj(obj);
-
-        List<DynamicProperty> propSet = new ArrayList<DynamicProperty>();
-
-        DynamicProperty prop = new DynamicProperty(), prop2 = new DynamicProperty();
-        prop.setName("name");
-        prop.setVal("WTC-DEV1");
-        propSet.add(prop);
-
-        prop2.setName("overallStatus");
-        prop2.setVal(ManagedEntityStatus.GREEN);
-        propSet.add(prop2);
-
-        objectContent.getPropSet().addAll(propSet);
-        listobcont.add(objectContent);
-
-        ObjectContent objectContent2 = new ObjectContent();
-
-        ManagedObjectReference obj2 = new ManagedObjectReference();
-        obj2.setType("ClusterComputeResource");
-        obj2.setValue("domain-c27");
-        objectContent2.setObj(obj2);
-
-        List<DynamicProperty> propSet2 = new ArrayList<DynamicProperty>();
-
-        DynamicProperty propB = new DynamicProperty(), propB2 = new DynamicProperty();
-        propB.setName("name");
-        propB.setVal("WTC-DEV2");
-        propSet2.add(propB);
-
-        propB2.setName("overallStatus");
-        propB2.setVal(ManagedEntityStatus.YELLOW);
-        propSet2.add(propB2);
-
-        objectContent2.getPropSet().addAll(propSet2);
-        listobcont.add(objectContent2);
-
-        return listobcont;
+    private RetrieveResult buildDataCenterList() {
+        ObjectMapper mapper = new ObjectMapper().setVisibility(JsonMethod.FIELD, JsonAutoDetect.Visibility.ANY);
+        mapper.configure(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.enableDefaultTypingAsProperty(ObjectMapper.DefaultTyping.OBJECT_AND_NON_CONCRETE, "type");
+        RetrieveResult rr = null;
+        try {
+            rr = mapper.readValue(new File("src/test/resources/DataCenters/datacenters.json"), RetrieveResult.class);
+        } catch ( Exception e ) { }
+        return rr;
     }
 
     @Test
@@ -184,7 +140,7 @@ public class DataCentersTest {
             assertNotNull(dcs);
             assertTrue(dcs.iterator().hasNext());
             DataCenter dataCenter = dcs.iterator().next();
-            assertEquals(dataCenter.getName(), "WTC-DEV1");
+            assertEquals(dataCenter.getName(), "WTC-Dev-1");
             assertEquals(dataCenter.getProviderDataCenterId(), "domain-c26");
             assertEquals(dataCenter.isActive(), true);
             assertEquals(dataCenter.isAvailable(), true);
@@ -223,7 +179,7 @@ public class DataCentersTest {
             }
             DataCenter dataCenter = dc.getDataCenter("domain-c26");
             assertNotNull(dataCenter);
-            assertEquals(dataCenter.getName(), "WTC-DEV1");
+            assertEquals(dataCenter.getName(), "WTC-Dev-1");
             assertEquals(dataCenter.getProviderDataCenterId(), "domain-c26");
         } catch (CloudException e){
             e.printStackTrace();

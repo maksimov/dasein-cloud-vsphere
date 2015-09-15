@@ -23,7 +23,7 @@ public class VsphereInventoryNavigation {
     private static final String VIMSERVICEINSTANCETYPE = "ServiceInstance";
     private static final String VIMSERVICEINSTANCEVALUE = "ServiceInstance";
 
-    public List<ObjectContent> retrieveObjectList(Vsphere provider, @Nonnull String baseFolder, @Nullable List<SelectionSpec> selectionSpecsArr, @Nonnull List<PropertySpec> pSpecs) throws InternalException, CloudException {
+    public RetrieveResult retrieveObjectList(Vsphere provider, @Nonnull String baseFolder, @Nullable List<SelectionSpec> selectionSpecsArr, @Nonnull List<PropertySpec> pSpecs) throws InternalException, CloudException {
         VsphereConnection vsphereConnection = provider.getServiceInstance();
         ServiceContent serviceContent = vsphereConnection.getServiceContent();
         VimPortType vimPortType = vsphereConnection.getVimPort();
@@ -60,16 +60,16 @@ public class VsphereInventoryNavigation {
             throw new CloudException(e);
         }
 
-        List<ObjectContent> listobcont = null;
+        RetrieveResult props = null;
         try {
-            listobcont = vimPortType.retrieveProperties(vimServiceContent.getPropertyCollector(), listfps);
+            props = vimPortType.retrievePropertiesEx(vimServiceContent.getPropertyCollector(), listfps, new RetrieveOptions());
         } catch ( InvalidPropertyFaultMsg e ) {
             throw new CloudException(e);
         } catch ( RuntimeFaultFaultMsg e ) {
             throw new CloudException(e);
         }
 
-        return listobcont;
+        return props;
     }
 
     private  @Nonnull TraversalSpec getFolderTraversalSpec(@Nonnull String baseFolder) {
