@@ -45,6 +45,11 @@ public class HostSupport extends AbstractAffinityGroupSupport<Vsphere> {
         this.provider = provider;
     }
 
+    public RetrieveResult retrieveObjectList(Vsphere provider, @Nonnull String baseFolder, @Nullable List<SelectionSpec> selectionSpecsArr, @Nonnull List<PropertySpec> pSpecs) throws InternalException, CloudException {
+        VsphereInventoryNavigation nav = new VsphereInventoryNavigation();
+        return nav.retrieveObjectList(provider, baseFolder, selectionSpecsArr, pSpecs);
+    }
+
     @Nonnull
     @Override
     public AffinityGroup create(@Nonnull AffinityGroupCreateOptions options) throws InternalException, CloudException {
@@ -84,8 +89,6 @@ public class HostSupport extends AbstractAffinityGroupSupport<Vsphere> {
             }
             List<AffinityGroup> hosts = new ArrayList<AffinityGroup>();
 
-            VsphereInventoryNavigation nav = new VsphereInventoryNavigation();
-
             TraversalSpec crToH = new TraversalSpec();
             crToH.setSkip(Boolean.FALSE);
             crToH.setType("ComputeResource");
@@ -111,7 +114,7 @@ public class HostSupport extends AbstractAffinityGroupSupport<Vsphere> {
             propertySpec2.setType("ClusterComputeResource");
             pSpecs.add(propertySpec2);
 
-            RetrieveResult listobcont = nav.retrieveObjectList(provider, "hostFolder", selectionSpecsArr, pSpecs);
+            RetrieveResult listobcont = retrieveObjectList(provider, "hostFolder", selectionSpecsArr, pSpecs);
 
             if (listobcont != null) {
                 List<AffinityGroup> temp = new ArrayList<AffinityGroup>();

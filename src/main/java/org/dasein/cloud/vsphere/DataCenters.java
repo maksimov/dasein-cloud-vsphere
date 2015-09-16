@@ -23,9 +23,6 @@ import com.vmware.vim25.*;
 
 import org.apache.commons.collections.IteratorUtils;
 import org.apache.log4j.Logger;
-import org.codehaus.jackson.annotate.JsonAutoDetect;
-import org.codehaus.jackson.annotate.JsonMethod;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.ProviderContext;
@@ -100,7 +97,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             if( region == null ) {
                 throw new CloudException("No such region: " + providerRegionId);
             }
-          /*  ProviderContext ctx = getProvider().getContext();
+            ProviderContext ctx = getProvider().getContext();
 
             if( ctx == null ) {
                 throw new NoContextException();
@@ -110,7 +107,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
 
             if( dcList != null ) {
                 return dcList;
-            }   */
+            }
             ArrayList<DataCenter> dataCenters = new ArrayList<DataCenter>();
 
             // Create Property Spec
@@ -152,7 +149,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
                 DataCenter dc = toDataCenter(providerRegionId+"-a", region.getName(), providerRegionId, "active");
                 dataCenters.add(dc);
             }
-          //  cache.put(ctx, dataCenters);
+            cache.put(ctx, dataCenters);
             return dataCenters;
         }
         finally {
@@ -166,7 +163,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     public Collection<Region> listRegions() throws InternalException, CloudException {
         APITrace.begin(provider, "listRegions");
         try {
-            /*ProviderContext ctx = provider.getContext();
+            ProviderContext ctx = provider.getContext();
 
             if( ctx == null ) {
                 throw new NoContextException(); 
@@ -176,8 +173,8 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
 
             if( regions != null ) {
                 return regions;
-            } */
-            Collection<Region> regions = new ArrayList<Region>();
+            }
+            regions = new ArrayList<Region>();
 
             // Create Property Spec
             List<PropertySpec> pSpecs = new ArrayList<PropertySpec>();
@@ -207,7 +204,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
                   }
                }
             }
-          //  cache.put(ctx, regions);
+            cache.put(ctx, regions);
             return regions;
 
         } catch (Exception e) {
@@ -228,7 +225,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     public Iterable<ResourcePool> listResourcePools(String providerDataCenterId) throws InternalException, CloudException {
         APITrace.begin(provider, "listResourcePools");
         try {
-           /* ProviderContext ctx = provider.getContext();
+            ProviderContext ctx = provider.getContext();
 
             if( ctx == null ) {
                 throw new NoContextException();
@@ -238,8 +235,8 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
 
             if( resourcePools != null ) {
                 return resourcePools;
-            }  */
-            Collection<ResourcePool> resourcePools = new ArrayList<ResourcePool>();
+            }
+            resourcePools = new ArrayList<ResourcePool>();
 
             // Recurse through all ResourcePools
             SelectionSpec sSpec = new SelectionSpec();
@@ -303,7 +300,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
                     }
                 }
             }
-          //  cache.put(ctx, resourcePools);
+            cache.put(ctx, resourcePools);
             return resourcePools;
 
         } catch (Exception e) {
@@ -336,7 +333,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     public Collection<StoragePool> listStoragePools() throws InternalException, CloudException {
         APITrace.begin(provider, "listStoragePools");
         try {
-           /* ProviderContext ctx = provider.getContext();
+            ProviderContext ctx = provider.getContext();
 
             if( ctx == null ) {
                 throw new NoContextException();
@@ -346,8 +343,8 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
 
             if( storagePools != null ) {
                 return storagePools;
-            } */
-            Collection<StoragePool> storagePools = new ArrayList<StoragePool>();
+            }
+            storagePools = new ArrayList<StoragePool>();
 
             // DC -> DS
             TraversalSpec dcToDs = new TraversalSpec();
@@ -428,7 +425,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
                     }
                 }
             }
-           // cache.put(ctx, storagePools);
+            cache.put(ctx, storagePools);
             return storagePools;
 
         } catch (Exception e) {
@@ -461,19 +458,19 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     public Collection<Folder> listVMFolders() throws InternalException, CloudException {
         APITrace.begin(provider, "listVMFolders");
         try {
-          /*  ProviderContext ctx = provider.getContext();
+            ProviderContext ctx = provider.getContext();
 
             if( ctx == null ) {
                 throw new NoContextException();
             }
             Cache<Folder> cache = Cache.getInstance(provider, "folders", Folder.class, CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(10, TimePeriod.HOUR));
-            Collection<Folder> folders = (Collection<Folder>)cache.get(ctx);*/
+            Collection<Folder> folders = (Collection<Folder>)cache.get(ctx);
             Map<String, Folder> folderMap = new HashMap<String, Folder>();
 
-           /* if( folders != null ) {
+            if( folders != null ) {
                 return folders;
-            } */
-            Collection<Folder> folders = new ArrayList<Folder>();
+            }
+            folders = new ArrayList<Folder>();
 
             // Create Property Spec
             List<PropertySpec> pSpecs = new ArrayList<PropertySpec>();
@@ -542,7 +539,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
                     f.setChildren(children);
                 }
             }
-           // cache.put(ctx, folders);
+            cache.put(ctx, folders);
             return folders;
 
         } catch (Exception e) {
