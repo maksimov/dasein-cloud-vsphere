@@ -117,9 +117,27 @@
       <version>1.9.5</version>
       <scope>test</scope>
     </dependency>
-
-
   </dependencies>
+
+  <profiles>
+        <profile>
+            <id>no-integration</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <skipTests>true</skipTests>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
   <build>
     <plugins>
