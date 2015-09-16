@@ -119,25 +119,6 @@
     </dependency>
   </dependencies>
 
-  <profiles>
-        <profile>
-            <id>no-integration</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-failsafe-plugin</artifactId>
-                        <configuration>
-                            <skipTests>true</skipTests>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 
   <build>
     <plugins>
@@ -357,9 +338,6 @@
               <value>${insecure}</value>
             </property>
           </systemProperties>
-          <excludes>
-            <exclude>**/org.dasein.cloud.vsphere/**Test.class</exclude>
-          </excludes>
           <includes>
             <include>**/TestSuite.java</include>
           </includes>
