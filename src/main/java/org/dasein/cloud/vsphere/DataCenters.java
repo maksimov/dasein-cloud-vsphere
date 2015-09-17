@@ -28,6 +28,7 @@ import org.dasein.cloud.InternalException;
 import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.compute.AffinityGroup;
 import org.dasein.cloud.compute.AffinityGroupFilterOptions;
+import org.dasein.cloud.compute.AffinityGroupSupport;
 import org.dasein.cloud.dc.*;
 import org.dasein.cloud.util.APITrace;
 import org.dasein.cloud.util.Cache;
@@ -55,9 +56,12 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
 
     private Vsphere provider;
 
+    public AffinityGroupSupport agSupport;
+
     protected DataCenters(@Nonnull Vsphere provider) {
         super(provider);
         this.provider = provider;
+        agSupport = provider.getComputeServices().getAffinityGroupSupport();
     }
 
     public RetrieveResult retrieveObjectList(Vsphere provider, @Nonnull String baseFolder, @Nullable List<SelectionSpec> selectionSpecsArr, @Nonnull List<PropertySpec> pSpecs) throws InternalException, CloudException {
@@ -368,7 +372,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             RetrieveResult listobcont = retrieveObjectList(provider, "hostFolder", selectionSpecsArr, pSpecs);
 
             if (listobcont != null) {
-                Iterable<AffinityGroup> allHosts = provider.getComputeServices().getAffinityGroupSupport().list(AffinityGroupFilterOptions.getInstance());
+                Iterable<AffinityGroup> allHosts = agSupport.list(AffinityGroupFilterOptions.getInstance());
                 for (ObjectContent oc : listobcont.getObjects()) {
                     ManagedObjectReference dsRef = oc.getObj();
                     String dsId = dsRef.getValue();
