@@ -1,10 +1,8 @@
 package org.dasein.cloud.vsphere.compute.server;
 
 
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.dasein.cloud.CloudException;
@@ -12,16 +10,9 @@ import org.dasein.cloud.InternalException;
 import org.dasein.cloud.compute.AbstractImageSupport;
 import org.dasein.cloud.compute.ImageFilterOptions;
 import org.dasein.cloud.compute.MachineImage;
-import org.dasein.cloud.util.APITrace;
 import org.dasein.cloud.vsphere.Vsphere;
 import org.dasein.cloud.vsphere.VsphereConnection;
 import org.dasein.cloud.vsphere.capabilities.VsphereImageCapabilities;
-import org.codehaus.jackson.annotate.JsonAutoDetect.Visibility;
-import org.codehaus.jackson.annotate.JsonMethod;
-import org.codehaus.jackson.map.DeserializationConfig.Feature;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.ObjectMapper.DefaultTyping;
-
 
 import com.vmware.vim25.DynamicProperty;
 import com.vmware.vim25.InvalidPropertyFaultMsg;
@@ -39,6 +30,8 @@ import com.vmware.vim25.VimPortType;
 import com.vmware.vim25.VirtualMachineConfigSummary;
 import com.vmware.vim25.VirtualMachineSummary;
 
+import org.dasein.cloud.util.APITrace;
+
 
 /**
  *
@@ -51,6 +44,8 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
     private VsphereConnection vsphereConnection;
     private VimPortType vimPort;
     private ServiceContent serviceContent;
+
+    //private ObjectManagement om = new ObjectManagement();
 
     public ImageSupport(Vsphere provider) {
         super(provider);
@@ -97,11 +92,7 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
     public ManagedObjectReference getViewManager() {
         ManagedObjectReference viewManager = serviceContent.getViewManager();
 
-        ObjectMapper mapper = new ObjectMapper().setVisibility(JsonMethod.FIELD, Visibility.ANY);
-        mapper.enableDefaultTypingAsProperty(DefaultTyping.OBJECT_AND_NON_CONCRETE, "type");
-        try {
-            mapper.writerWithDefaultPrettyPrinter().writeValue(new File("src/test/resources/ImageSupport/viewManager.json"), viewManager);
-        } catch ( IOException e ) {}
+        //om.writeJsonFile(viewManager, "src/test/resources/ImageSupport/viewManager.json");
 
         return viewManager;
     }
@@ -109,11 +100,7 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
     public ManagedObjectReference getRootFolder() {
         ManagedObjectReference rootFolder = serviceContent.getRootFolder();
 
-        ObjectMapper mapper = new ObjectMapper().setVisibility(JsonMethod.FIELD, Visibility.ANY);
-        mapper.enableDefaultTypingAsProperty(DefaultTyping.OBJECT_AND_NON_CONCRETE, "type");
-        try {
-            mapper.writerWithDefaultPrettyPrinter().writeValue(new File("src/test/resources/ImageSupport/rootFolder.json"), rootFolder);
-        } catch ( IOException e ) {}
+        //om.writeJsonFile(rootFolder, "src/test/resources/ImageSupport/rootFolder.json");
 
         return rootFolder;
     }
@@ -121,11 +108,7 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
     public ManagedObjectReference createContainerView(ManagedObjectReference viewManager, ManagedObjectReference rootFolder, List<String> vmList, boolean b) throws RuntimeFaultFaultMsg {
         ManagedObjectReference containerView = vimPort.createContainerView(viewManager, rootFolder, vmList, b);
 
-        ObjectMapper mapper = new ObjectMapper().setVisibility(JsonMethod.FIELD, Visibility.ANY);
-        mapper.enableDefaultTypingAsProperty(DefaultTyping.OBJECT_AND_NON_CONCRETE, "type");
-        try {
-            mapper.writerWithDefaultPrettyPrinter().writeValue(new File("src/test/resources/ImageSupport/containerView.json"), containerView);
-        } catch ( IOException e ) {}
+        //om.writeJsonFile(containerView, "src/test/resources/ImageSupport/containerView.json");
 
         return containerView;
     }
@@ -133,11 +116,7 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
     public ManagedObjectReference getPropertyCollector() {
         ManagedObjectReference propertyCollector = serviceContent.getPropertyCollector();
 
-        ObjectMapper mapper = new ObjectMapper().setVisibility(JsonMethod.FIELD, Visibility.ANY);
-        mapper.enableDefaultTypingAsProperty(DefaultTyping.OBJECT_AND_NON_CONCRETE, "type");
-        try {
-            mapper.writerWithDefaultPrettyPrinter().writeValue(new File("src/test/resources/ImageSupport/propertyCollector.json"), propertyCollector);
-        } catch ( IOException e ) {}
+        //om.writeJsonFile(propertyCollector, "src/test/resources/ImageSupport/propertyCollector.json");
 
         return propertyCollector;
     }
@@ -145,11 +124,7 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
     public RetrieveResult retrievePropertiesEx(ManagedObjectReference propColl, List<PropertyFilterSpec> fSpecList, RetrieveOptions ro) throws InvalidPropertyFaultMsg, RuntimeFaultFaultMsg {
         RetrieveResult propertiesEx = vimPort.retrievePropertiesEx(propColl, fSpecList, ro);
 
-        ObjectMapper mapper = new ObjectMapper().setVisibility(JsonMethod.FIELD, Visibility.ANY);
-        mapper.enableDefaultTypingAsProperty(DefaultTyping.OBJECT_AND_NON_CONCRETE, "type");
-        try {
-            mapper.writerWithDefaultPrettyPrinter().writeValue(new File("src/test/resources/ImageSupport/propertiesEx.json"), propertiesEx);
-        } catch ( IOException e ) {}
+        //om.writeJsonFile(propertiesEx, "src/test/resources/ImageSupport/propertiesEx.json");
 
         return propertiesEx;
     }

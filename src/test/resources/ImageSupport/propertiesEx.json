@@ -35,6 +35,72 @@
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
     "obj" : {
+      "value" : "vm-2089",
+      "type" : "VirtualMachine"
+    },
+    "propSet" : [ "java.util.ArrayList", [ {
+      "name" : "name",
+      "val" : "sm-tw-wink12"
+    }, {
+      "name" : "summary.config",
+      "val" : {
+        "type" : "com.vmware.vim25.VirtualMachineConfigSummary",
+        "name" : "sm-tw-wink12",
+        "template" : true,
+        "vmPathName" : "[shared-datastore-1] sm-tw-wink12/sm-tw-wink12.vmtx",
+        "memorySizeMB" : 4096,
+        "cpuReservation" : 0,
+        "memoryReservation" : 0,
+        "numCpu" : 1,
+        "numEthernetCards" : 1,
+        "numVirtualDisks" : 1,
+        "uuid" : "422e6160-1653-99df-9d70-606956a98e52",
+        "instanceUuid" : "502e62f2-8302-04d7-571f-4b694a9889da",
+        "guestId" : "windows8Server64Guest",
+        "guestFullName" : "Microsoft Windows Server 2012 (64-bit)",
+        "annotation" : "",
+        "product" : null,
+        "installBootRequired" : false,
+        "ftInfo" : null,
+        "managedBy" : null
+      }
+    } ] ],
+    "missingSet" : [ "java.util.ArrayList", [ ] ]
+  }, {
+    "obj" : {
+      "value" : "vm-2090",
+      "type" : "VirtualMachine"
+    },
+    "propSet" : [ "java.util.ArrayList", [ {
+      "name" : "name",
+      "val" : "shaun-un8ntu"
+    }, {
+      "name" : "summary.config",
+      "val" : {
+        "type" : "com.vmware.vim25.VirtualMachineConfigSummary",
+        "name" : "shaun-un8ntu",
+        "template" : false,
+        "vmPathName" : "[shared-datastore-1] shaun-un8ntu/shaun-un8ntu.vmx",
+        "memorySizeMB" : 2048,
+        "cpuReservation" : 0,
+        "memoryReservation" : 0,
+        "numCpu" : 2,
+        "numEthernetCards" : 1,
+        "numVirtualDisks" : 2,
+        "uuid" : "422e0cf0-1dbf-4e70-2cd1-a69b24e25756",
+        "instanceUuid" : "502ea9b1-2317-5b69-a1bd-42cc660dbc51",
+        "guestId" : "ubuntu64Guest",
+        "guestFullName" : "Ubuntu Linux (64-bit)",
+        "annotation" : "",
+        "product" : null,
+        "installBootRequired" : false,
+        "ftInfo" : null,
+        "managedBy" : null
+      }
+    } ] ],
+    "missingSet" : [ "java.util.ArrayList", [ ] ]
+  }, {
+    "obj" : {
       "value" : "vm-1955",
       "type" : "VirtualMachine"
     },
@@ -233,63 +299,30 @@
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
     "obj" : {
-      "value" : "vm-2080",
+      "value" : "vm-2093",
       "type" : "VirtualMachine"
     },
     "propSet" : [ "java.util.ArrayList", [ {
       "name" : "name",
-      "val" : "ret-launch1"
+      "val" : "ubuntu-twdemo-dcmagent"
     }, {
       "name" : "summary.config",
       "val" : {
         "type" : "com.vmware.vim25.VirtualMachineConfigSummary",
-        "name" : "ret-launch1",
-        "template" : false,
-        "vmPathName" : "[shared-datastore-1] ret-launch1/ret-launch1.vmx",
-        "memorySizeMB" : 2048,
+        "name" : "ubuntu-twdemo-dcmagent",
+        "template" : true,
+        "vmPathName" : "[shared-datastore-1] ubuntu-twdemo-dcmagent/ubuntu-twdemo-dcmagent.vmtx",
+        "memorySizeMB" : 1024,
         "cpuReservation" : 0,
         "memoryReservation" : 0,
         "numCpu" : 1,
         "numEthernetCards" : 1,
         "numVirtualDisks" : 1,
-        "uuid" : "422e66c3-729e-4308-9562-8e9badee6ff9",
-        "instanceUuid" : "502ec7ef-90de-6b10-31b0-d2baf3e420c4",
-        "guestId" : "windows7Server64Guest",
-        "guestFullName" : "Microsoft Windows Server 2008 R2 (64-bit)",
-        "annotation" : "422eea85-b584-3f9a-04ad-1bd7366ebd68",
-        "product" : null,
-        "installBootRequired" : false,
-        "ftInfo" : null,
-        "managedBy" : null
-      }
-    } ] ],
-    "missingSet" : [ "java.util.ArrayList", [ ] ]
-  }, {
-    "obj" : {
-      "value" : "vm-2081",
-      "type" : "VirtualMachine"
-    },
-    "propSet" : [ "java.util.ArrayList", [ {
-      "name" : "name",
-      "val" : "ret-launch02"
-    }, {
-      "name" : "summary.config",
-      "val" : {
-        "type" : "com.vmware.vim25.VirtualMachineConfigSummary",
-        "name" : "ret-launch02",
-        "template" : false,
-        "vmPathName" : "[shared-datastore-1] ret-launch02/ret-launch02.vmx",
-        "memorySizeMB" : 2048,
-        "cpuReservation" : 0,
-        "memoryReservation" : 0,
-        "numCpu" : 1,
-        "numEthernetCards" : 1,
-        "numVirtualDisks" : 1,
-        "uuid" : "422e057c-d19f-625f-e078-b11d5c354cc1",
-        "instanceUuid" : "502e2024-22e9-2eeb-ada5-665e6041f2f9",
-        "guestId" : "windows7Server64Guest",
-        "guestFullName" : "Microsoft Windows Server 2008 R2 (64-bit)",
-        "annotation" : "422eea85-b584-3f9a-04ad-1bd7366ebd68",
+        "uuid" : "422e59e8-f46e-634a-6a99-c71fd25523dd",
+        "instanceUuid" : "502ef84b-7279-c541-0fd9-e952eeedeefb",
+        "guestId" : "ubuntu64Guest",
+        "guestFullName" : "Ubuntu Linux (64-bit)",
+        "annotation" : "",
         "product" : null,
         "installBootRequired" : false,
         "ftInfo" : null,
@@ -398,60 +431,27 @@
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
     "obj" : {
-      "value" : "vm-2085",
+      "value" : "vm-2091",
       "type" : "VirtualMachine"
     },
     "propSet" : [ "java.util.ArrayList", [ {
       "name" : "name",
-      "val" : "tas-launch06"
+      "val" : "Ubuntu-twdemo"
     }, {
       "name" : "summary.config",
       "val" : {
         "type" : "com.vmware.vim25.VirtualMachineConfigSummary",
-        "name" : "tas-launch06",
+        "name" : "Ubuntu-twdemo",
         "template" : false,
-        "vmPathName" : "[shared-datastore-1] tas-launch06/tas-launch06.vmx",
-        "memorySizeMB" : 2048,
+        "vmPathName" : "[shared-datastore-1] Ubuntu-twdemo/Ubuntu-twdemo.vmx",
+        "memorySizeMB" : 1024,
         "cpuReservation" : 0,
         "memoryReservation" : 0,
         "numCpu" : 1,
         "numEthernetCards" : 1,
         "numVirtualDisks" : 1,
-        "uuid" : "422eb14d-3d5a-b59a-ff3e-a00cb918d839",
-        "instanceUuid" : "502ec68e-06b1-36c2-bc9e-4128c83cb079",
-        "guestId" : "windows7Server64Guest",
-        "guestFullName" : "Microsoft Windows Server 2008 R2 (64-bit)",
-        "annotation" : "422eea85-b584-3f9a-04ad-1bd7366ebd68",
-        "product" : null,
-        "installBootRequired" : false,
-        "ftInfo" : null,
-        "managedBy" : null
-      }
-    } ] ],
-    "missingSet" : [ "java.util.ArrayList", [ ] ]
-  }, {
-    "obj" : {
-      "value" : "vm-1113",
-      "type" : "VirtualMachine"
-    },
-    "propSet" : [ "java.util.ArrayList", [ {
-      "name" : "name",
-      "val" : "Ubuntu-CSE"
-    }, {
-      "name" : "summary.config",
-      "val" : {
-        "type" : "com.vmware.vim25.VirtualMachineConfigSummary",
-        "name" : "Ubuntu-CSE",
-        "template" : false,
-        "vmPathName" : "[shared-datastore-1] Ubuntu-CSE/Ubuntu-CSE.vmx",
-        "memorySizeMB" : 2048,
-        "cpuReservation" : 0,
-        "memoryReservation" : 0,
-        "numCpu" : 2,
-        "numEthernetCards" : 1,
-        "numVirtualDisks" : 2,
-        "uuid" : "422e1630-a2eb-134a-9aa8-c1856c61de27",
-        "instanceUuid" : "502e98a8-0360-2c47-2b6b-a0f264b82365",
+        "uuid" : "422e3f51-d8f8-8b94-bff5-75b1ff21e29c",
+        "instanceUuid" : "502e1661-8edd-9811-bafe-c85d32853517",
         "guestId" : "ubuntu64Guest",
         "guestFullName" : "Ubuntu Linux (64-bit)",
         "annotation" : "",
@@ -488,39 +488,6 @@
         "guestId" : "ubuntu64Guest",
         "guestFullName" : "Ubuntu Linux (64-bit)",
         "annotation" : "",
-        "product" : null,
-        "installBootRequired" : false,
-        "ftInfo" : null,
-        "managedBy" : null
-      }
-    } ] ],
-    "missingSet" : [ "java.util.ArrayList", [ ] ]
-  }, {
-    "obj" : {
-      "value" : "vm-2082",
-      "type" : "VirtualMachine"
-    },
-    "propSet" : [ "java.util.ArrayList", [ {
-      "name" : "name",
-      "val" : "tas-launch01"
-    }, {
-      "name" : "summary.config",
-      "val" : {
-        "type" : "com.vmware.vim25.VirtualMachineConfigSummary",
-        "name" : "tas-launch01",
-        "template" : false,
-        "vmPathName" : "[shared-datastore-1] tas-launch01/tas-launch01.vmx",
-        "memorySizeMB" : 2048,
-        "cpuReservation" : 0,
-        "memoryReservation" : 0,
-        "numCpu" : 1,
-        "numEthernetCards" : 1,
-        "numVirtualDisks" : 1,
-        "uuid" : "422ec0d1-12bf-4d5e-c69e-59c5cfdba969",
-        "instanceUuid" : "502ef4a5-915c-8dd0-9ae3-a7b98fa93515",
-        "guestId" : "windows7Server64Guest",
-        "guestFullName" : "Microsoft Windows Server 2008 R2 (64-bit)",
-        "annotation" : "422ee012-60d0-90ab-bdfb-b18ba0552df9",
         "product" : null,
         "installBootRequired" : false,
         "ftInfo" : null,
@@ -587,39 +554,6 @@
         "guestId" : "ubuntu64Guest",
         "guestFullName" : "Ubuntu Linux (64-bit)",
         "annotation" : "422e3d70-8a31-df02-7414-5c9662ac889e",
-        "product" : null,
-        "installBootRequired" : false,
-        "ftInfo" : null,
-        "managedBy" : null
-      }
-    } ] ],
-    "missingSet" : [ "java.util.ArrayList", [ ] ]
-  }, {
-    "obj" : {
-      "value" : "vm-2084",
-      "type" : "VirtualMachine"
-    },
-    "propSet" : [ "java.util.ArrayList", [ {
-      "name" : "name",
-      "val" : "tas-launch03"
-    }, {
-      "name" : "summary.config",
-      "val" : {
-        "type" : "com.vmware.vim25.VirtualMachineConfigSummary",
-        "name" : "tas-launch03",
-        "template" : false,
-        "vmPathName" : "[shared-datastore-1] tas-launch03/tas-launch03.vmx",
-        "memorySizeMB" : 2048,
-        "cpuReservation" : 0,
-        "memoryReservation" : 0,
-        "numCpu" : 1,
-        "numEthernetCards" : 1,
-        "numVirtualDisks" : 1,
-        "uuid" : "422e96cd-13c3-340a-b3e2-2fef0dd3374a",
-        "instanceUuid" : "502ed741-27dc-cdac-158e-d73969467a9d",
-        "guestId" : "windows7Server64Guest",
-        "guestFullName" : "Microsoft Windows Server 2008 R2 (64-bit)",
-        "annotation" : "422ee012-60d0-90ab-bdfb-b18ba0552df9",
         "product" : null,
         "installBootRequired" : false,
         "ftInfo" : null,
@@ -728,105 +662,6 @@
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
     "obj" : {
-      "value" : "vm-2083",
-      "type" : "VirtualMachine"
-    },
-    "propSet" : [ "java.util.ArrayList", [ {
-      "name" : "name",
-      "val" : "tas-launch02"
-    }, {
-      "name" : "summary.config",
-      "val" : {
-        "type" : "com.vmware.vim25.VirtualMachineConfigSummary",
-        "name" : "tas-launch02",
-        "template" : false,
-        "vmPathName" : "[shared-datastore-1] tas-launch02/tas-launch02.vmx",
-        "memorySizeMB" : 2048,
-        "cpuReservation" : 0,
-        "memoryReservation" : 0,
-        "numCpu" : 1,
-        "numEthernetCards" : 1,
-        "numVirtualDisks" : 1,
-        "uuid" : "422e112b-f9ce-c320-6fdf-ca3bba22f9ac",
-        "instanceUuid" : "502eb950-1451-7e8c-4f34-2653a84ff2f2",
-        "guestId" : "windows7Server64Guest",
-        "guestFullName" : "Microsoft Windows Server 2008 R2 (64-bit)",
-        "annotation" : "422eea85-b584-3f9a-04ad-1bd7366ebd68",
-        "product" : null,
-        "installBootRequired" : false,
-        "ftInfo" : null,
-        "managedBy" : null
-      }
-    } ] ],
-    "missingSet" : [ "java.util.ArrayList", [ ] ]
-  }, {
-    "obj" : {
-      "value" : "vm-2014",
-      "type" : "VirtualMachine"
-    },
-    "propSet" : [ "java.util.ArrayList", [ {
-      "name" : "name",
-      "val" : "dcm-dcd-agent"
-    }, {
-      "name" : "summary.config",
-      "val" : {
-        "type" : "com.vmware.vim25.VirtualMachineConfigSummary",
-        "name" : "dcm-dcd-agent",
-        "template" : false,
-        "vmPathName" : "[shared-datastore-1] dcm-dcd-agent/dcm-dcd-agent.vmx",
-        "memorySizeMB" : 4096,
-        "cpuReservation" : 0,
-        "memoryReservation" : 0,
-        "numCpu" : 2,
-        "numEthernetCards" : 1,
-        "numVirtualDisks" : 1,
-        "uuid" : "422eeefc-6c23-9839-2123-f7bfa7d04264",
-        "instanceUuid" : "502edf29-80c1-2166-a318-0c8c88453e36",
-        "guestId" : "windows7Server64Guest",
-        "guestFullName" : "Microsoft Windows Server 2008 R2 (64-bit)",
-        "annotation" : "422eea85-b584-3f9a-04ad-1bd7366ebd68",
-        "product" : null,
-        "installBootRequired" : false,
-        "ftInfo" : null,
-        "managedBy" : null
-      }
-    } ] ],
-    "missingSet" : [ "java.util.ArrayList", [ ] ]
-  }, {
-    "obj" : {
-      "value" : "vm-2078",
-      "type" : "VirtualMachine"
-    },
-    "propSet" : [ "java.util.ArrayList", [ {
-      "name" : "name",
-      "val" : "amm1-yesvol1"
-    }, {
-      "name" : "summary.config",
-      "val" : {
-        "type" : "com.vmware.vim25.VirtualMachineConfigSummary",
-        "name" : "amm1-yesvol1",
-        "template" : false,
-        "vmPathName" : "[bl01-datastore] amm1-yesvol1/amm1-yesvol1.vmx",
-        "memorySizeMB" : 1024,
-        "cpuReservation" : 0,
-        "memoryReservation" : 0,
-        "numCpu" : 1,
-        "numEthernetCards" : 1,
-        "numVirtualDisks" : 1,
-        "uuid" : "422e3a96-9b79-4448-8e36-9102661ec4c4",
-        "instanceUuid" : "502ed955-7666-0674-40df-6ca532c35ce6",
-        "guestId" : "windows8Server64Guest",
-        "guestFullName" : "Microsoft Windows Server 2012 (64-bit)",
-        "annotation" : "422ec558-ae97-5273-ae0f-6da42a029e31",
-        "product" : null,
-        "installBootRequired" : false,
-        "ftInfo" : null,
-        "managedBy" : null
-      }
-    } ] ],
-    "missingSet" : [ "java.util.ArrayList", [ ] ]
-  }, {
-    "obj" : {
       "value" : "vm-2017",
       "type" : "VirtualMachine"
     },
@@ -860,39 +695,6 @@
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
     "obj" : {
-      "value" : "vm-2062",
-      "type" : "VirtualMachine"
-    },
-    "propSet" : [ "java.util.ArrayList", [ {
-      "name" : "name",
-      "val" : "amm-win-vsp1"
-    }, {
-      "name" : "summary.config",
-      "val" : {
-        "type" : "com.vmware.vim25.VirtualMachineConfigSummary",
-        "name" : "amm-win-vsp1",
-        "template" : false,
-        "vmPathName" : "[bl01-datastore] amm-win-vsp1/amm-win-vsp1.vmx",
-        "memorySizeMB" : 1024,
-        "cpuReservation" : 0,
-        "memoryReservation" : 0,
-        "numCpu" : 1,
-        "numEthernetCards" : 1,
-        "numVirtualDisks" : 1,
-        "uuid" : "422ef55b-0a64-c71c-da99-010d5a985a65",
-        "instanceUuid" : "502e51ec-a1ef-600a-6f80-52e3cef068c3",
-        "guestId" : "windows8Server64Guest",
-        "guestFullName" : "Microsoft Windows Server 2012 (64-bit)",
-        "annotation" : "422e88cb-f1ce-93c7-317b-b6cc1386441c",
-        "product" : null,
-        "installBootRequired" : false,
-        "ftInfo" : null,
-        "managedBy" : null
-      }
-    } ] ],
-    "missingSet" : [ "java.util.ArrayList", [ ] ]
-  }, {
-    "obj" : {
       "value" : "vm-2068",
       "type" : "VirtualMachine"
     },
@@ -917,39 +719,6 @@
         "guestId" : "windows8Server64Guest",
         "guestFullName" : "Microsoft Windows Server 2012 (64-bit)",
         "annotation" : "422e88cb-f1ce-93c7-317b-b6cc1386441c",
-        "product" : null,
-        "installBootRequired" : false,
-        "ftInfo" : null,
-        "managedBy" : null
-      }
-    } ] ],
-    "missingSet" : [ "java.util.ArrayList", [ ] ]
-  }, {
-    "obj" : {
-      "value" : "vm-2087",
-      "type" : "VirtualMachine"
-    },
-    "propSet" : [ "java.util.ArrayList", [ {
-      "name" : "name",
-      "val" : "tmpl-test1"
-    }, {
-      "name" : "summary.config",
-      "val" : {
-        "type" : "com.vmware.vim25.VirtualMachineConfigSummary",
-        "name" : "tmpl-test1",
-        "template" : true,
-        "vmPathName" : "[shared-datastore-1] tmpl-test1/tmpl-test1.vmtx",
-        "memorySizeMB" : 2048,
-        "cpuReservation" : 0,
-        "memoryReservation" : 0,
-        "numCpu" : 1,
-        "numEthernetCards" : 1,
-        "numVirtualDisks" : 1,
-        "uuid" : "422e96a3-6174-81e5-b26f-473876cf773a",
-        "instanceUuid" : "502ecc1b-f8a3-e8c8-0e68-9966912701fe",
-        "guestId" : "windows7Server64Guest",
-        "guestFullName" : "Microsoft Windows Server 2008 R2 (64-bit)",
-        "annotation" : "422eea85-b584-3f9a-04ad-1bd7366ebd68",
         "product" : null,
         "installBootRequired" : false,
         "ftInfo" : null,
