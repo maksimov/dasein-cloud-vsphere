@@ -93,24 +93,33 @@
 
     <!-- Test -->
     <dependency>
-      <groupId>org.jmockit</groupId>
-      <artifactId>jmockit</artifactId>
-      <version>1.19</version>
-      <scope>test</scope>
+      <groupId>org.dasein</groupId>
+      <artifactId>dasein-cloud-test</artifactId>
+      <version>2015.09.1-SNAPSHOT</version>
     </dependency>
+      <dependency>
+          <groupId>org.jmockit</groupId>
+          <artifactId>jmockit</artifactId>
+          <version>1.19</version>
+          <scope>test</scope>
+      </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>4.9</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>org.dasein</groupId>
-      <artifactId>dasein-cloud-test</artifactId>
-      <version>2015.09.1-SNAPSHOT</version>
-    </dependency>
-  </dependencies>
 
+    <!-- This should go away once tests are converted to jmocket -->
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-all</artifactId>
+      <version>1.9.5</version>
+      <scope>test</scope>
+    </dependency>
+
+
+  </dependencies>
 
   <build>
     <plugins>
@@ -260,7 +269,7 @@
       </plugin>
 
       <!-- unit tests-->
-      <!-- <plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.6</version>
@@ -272,12 +281,12 @@
             <include>**/**Test.class</include>
           </includes>
         </configuration>
-      </plugin> -->
+      </plugin>
 
       <!-- integration tests -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
+        <artifactId>maven-failsafe-plugin</artifactId>
         <version>2.6</version>
         <configuration>
           <systemProperties>
@@ -330,18 +339,21 @@
               <value>${insecure}</value>
             </property>
           </systemProperties>
+          <excludes>
+            <exclude>**/org.dasein.cloud.vsphere/**Test.class</exclude>
+          </excludes>
           <includes>
             <include>**/TestSuite.java</include>
           </includes>
         </configuration>
-        <!-- <executions>
+        <executions>
           <execution>
             <goals>
               <goal>integration-test</goal>
               <goal>verify</goal>
             </goals>
           </execution>
-        </executions> -->
+        </executions>
       </plugin>
 
       <plugin>
