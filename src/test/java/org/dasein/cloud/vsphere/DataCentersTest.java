@@ -7,6 +7,9 @@ import org.codehaus.jackson.map.DeserializationConfig;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
+import org.dasein.cloud.compute.AffinityGroup;
+import org.dasein.cloud.compute.AffinityGroupFilterOptions;
+import org.dasein.cloud.compute.AffinityGroupSupport;
 import org.dasein.cloud.dc.*;
 import org.dasein.cloud.vsphere.compute.*;
 import org.dasein.util.uom.storage.Megabyte;
@@ -18,6 +21,7 @@ import org.junit.runners.JUnit4;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.*;
@@ -281,24 +285,30 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void listStoragePoolsTest() {
-        DataCenters dc = new DataCenters(vsphereMock);
-
-        new MockUp<DataCenters>() {
-            @Mock
-            public RetrieveResult retrieveObjectList(Invocation inv, Vsphere provider, @Nonnull String baseFolder, @Nullable List<SelectionSpec> selectionSpecsArr, @Nonnull List<PropertySpec> pSpecs) {
-                return readJsonFile("src/test/resources/DataCenters/storagePools.json", RetrieveResult.class);
-            }
-        };
-
-        new MockUp<HostSupport>() {
-            @Mock
-            public RetrieveResult retrieveObjectList(Invocation inv, Vsphere provider, @Nonnull String baseFolder, @Nullable List<SelectionSpec> selectionSpecsArr, @Nonnull List<PropertySpec> pSpecs) {
-                return readJsonFile("src/test/resources/HostSupport/hosts.json", RetrieveResult.class);
-
-            }
-        };
-
         try{
+            final DataCenters dc = new DataCenters(vsphereMock);
+
+            new NonStrictExpectations() {
+                { vsphereMock.getComputeServices(); result = vsphereComputeMock; }
+                { vsphereComputeMock.getAffinityGroupSupport(); result = vsphereAGMock; }
+            };
+
+            new Expectations() {
+                {
+                    vsphereAGMock.list(AffinityGroupFilterOptions.getInstance());
+                        returns (readJsonFile("src/test/resources/Datacenters/daseinHosts.json", ArrayList.class));
+
+                    //dc.retrieveObjectList(vsphereMock, "hostFolder", null, null);
+                    //    returns (readJsonFile("src/test/resources/DataCenters/storagePools.json", RetrieveResult.class));
+                }
+            };
+
+            new MockUp<DataCenters>() {
+                @Mock
+                public RetrieveResult retrieveObjectList(Invocation inv, Vsphere provider, @Nonnull String baseFolder, @Nullable List<SelectionSpec> selectionSpecsArr, @Nonnull List<PropertySpec> pSpecs) {
+                    return readJsonFile("src/test/resources/DataCenters/storagePools.json", RetrieveResult.class);
+                }
+            };
 
             Iterable<StoragePool> sps = dc.listStoragePools();
             assertNotNull(sps);
