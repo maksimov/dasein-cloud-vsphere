@@ -69,10 +69,6 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
         return nav.retrieveObjectList(provider, baseFolder, selectionSpecsArr, pSpecs);
     }
 
-    public AffinityGroupSupport getAffinityGroupSupport() {
-        return provider.getComputeServices().getAffinityGroupSupport();
-    }
-
     @Override
     public @Nullable DataCenter getDataCenter(@Nonnull String dataCenterId) throws InternalException, CloudException {
         for( Region region : listRegions() ) {
@@ -376,7 +372,6 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             RetrieveResult listobcont = retrieveObjectList(provider, "hostFolder", selectionSpecsArr, pSpecs);
 
             if (listobcont != null) {
-                //AffinityGroupSupport affinityGroupSupport = getAffinityGroupSupport();
                 Iterable<AffinityGroup> allHosts = agSupport.list(AffinityGroupFilterOptions.getInstance());
                 for (ObjectContent oc : listobcont.getObjects()) {
                     ManagedObjectReference dsRef = oc.getObj();

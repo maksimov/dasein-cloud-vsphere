@@ -173,11 +173,6 @@ public class HostSupport extends AbstractAffinityGroupSupport<Vsphere> {
                 }
             }
             cache.put(ctx, hosts);
-            ObjectMapper mapper = new ObjectMapper().setVisibility(JsonMethod.FIELD, JsonAutoDetect.Visibility.ANY);
-            mapper.enableDefaultTypingAsProperty(ObjectMapper.DefaultTyping.OBJECT_AND_NON_CONCRETE, "type");
-            try {
-                mapper.writerWithDefaultPrettyPrinter().writeValue(new File("src/test/resources/HostSupport/daseinHosts.json"), hosts);
-            } catch ( IOException e ) {}
             return hosts;
         }
         finally {
