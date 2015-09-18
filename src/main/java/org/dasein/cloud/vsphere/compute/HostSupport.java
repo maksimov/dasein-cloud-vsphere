@@ -39,8 +39,10 @@ public class HostSupport extends AbstractAffinityGroupSupport<Vsphere> {
     static private final Logger logger = Vsphere.getLogger(HostSupport.class);
 
     private Vsphere provider;
+    public List<PropertySpec> hostPSpec;
+    public List<SelectionSpec> hostSSpec;
 
-    protected HostSupport(@Nonnull Vsphere provider) {
+    public HostSupport(@Nonnull Vsphere provider) {
         super(provider);
         this.provider = provider;
     }
@@ -48,6 +50,40 @@ public class HostSupport extends AbstractAffinityGroupSupport<Vsphere> {
     public RetrieveResult retrieveObjectList(Vsphere provider, @Nonnull String baseFolder, @Nullable List<SelectionSpec> selectionSpecsArr, @Nonnull List<PropertySpec> pSpecs) throws InternalException, CloudException {
         VsphereInventoryNavigation nav = new VsphereInventoryNavigation();
         return nav.retrieveObjectList(provider, baseFolder, selectionSpecsArr, pSpecs);
+    }
+
+    public List<PropertySpec> getHostPSpec() {
+        if (hostPSpec == null) {
+            hostPSpec = new ArrayList<PropertySpec>();
+            // Create Property Spec
+            PropertySpec propertySpec = new PropertySpec();
+            propertySpec.setAll(Boolean.FALSE);
+            propertySpec.getPathSet().add("name");
+            propertySpec.getPathSet().add("overallStatus");
+            propertySpec.setType("HostSystem");
+            hostPSpec.add(propertySpec);
+
+            // Create Property Spec
+            PropertySpec propertySpec2 = new PropertySpec();
+            propertySpec2.setAll(Boolean.FALSE);
+            propertySpec2.getPathSet().add("host");
+            propertySpec2.setType("ClusterComputeResource");
+            hostPSpec.add(propertySpec2);
+        }
+        return hostPSpec;
+    }
+
+    public List<SelectionSpec> getHostSSpec() {
+        if (hostSSpec == null) {
+            hostSSpec = new ArrayList<SelectionSpec>();
+            TraversalSpec crToH = new TraversalSpec();
+            crToH.setSkip(Boolean.FALSE);
+            crToH.setType("ComputeResource");
+            crToH.setPath("host");
+            crToH.setName("crToH");
+            hostSSpec.add(crToH);
+        }
+        return hostSSpec;
     }
 
     @Nonnull
@@ -89,30 +125,8 @@ public class HostSupport extends AbstractAffinityGroupSupport<Vsphere> {
             }
             List<AffinityGroup> hosts = new ArrayList<AffinityGroup>();
 
-            TraversalSpec crToH = new TraversalSpec();
-            crToH.setSkip(Boolean.FALSE);
-            crToH.setType("ComputeResource");
-            crToH.setPath("host");
-            crToH.setName("crToH");
-
-            List<SelectionSpec> selectionSpecsArr = new ArrayList<SelectionSpec>();
-            selectionSpecsArr.add(crToH);
-
-            List<PropertySpec> pSpecs = new ArrayList<PropertySpec>();
-            // Create Property Spec
-            PropertySpec propertySpec = new PropertySpec();
-            propertySpec.setAll(Boolean.FALSE);
-            propertySpec.getPathSet().add("name");
-            propertySpec.getPathSet().add("overallStatus");
-            propertySpec.setType("HostSystem");
-            pSpecs.add(propertySpec);
-
-            // Create Property Spec
-            PropertySpec propertySpec2 = new PropertySpec();
-            propertySpec2.setAll(Boolean.FALSE);
-            propertySpec2.getPathSet().add("host");
-            propertySpec2.setType("ClusterComputeResource");
-            pSpecs.add(propertySpec2);
+            List<SelectionSpec> selectionSpecsArr = getHostSSpec();
+            List<PropertySpec> pSpecs = getHostPSpec();
 
             RetrieveResult listobcont = retrieveObjectList(provider, "hostFolder", selectionSpecsArr, pSpecs);
 
