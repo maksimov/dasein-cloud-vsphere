@@ -28,10 +28,6 @@ public class VsphereTestBase {
     @Mocked
     Vsphere vsphereMock;
     @Mocked
-    VsphereCompute vsphereComputeMock;
-    @Mocked
-    AffinityGroupSupport vsphereAGMock;
-    @Mocked
     Logger logger;
 
 
@@ -43,8 +39,6 @@ public class VsphereTestBase {
     public void setUp() {
         new NonStrictExpectations() {
             { vsphereMock.getContext(); result = providerContextMock; }
-            { vsphereMock.getComputeServices(); result = vsphereComputeMock; }
-            { vsphereComputeMock.getAffinityGroupSupport(); result = vsphereAGMock; }
         };
 
         new NonStrictExpectations() {
