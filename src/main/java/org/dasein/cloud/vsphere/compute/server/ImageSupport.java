@@ -4,9 +4,12 @@ package org.dasein.cloud.vsphere.compute.server;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nonnull;
+
 import org.apache.log4j.Logger;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
+import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.compute.AbstractImageSupport;
 import org.dasein.cloud.compute.Architecture;
 import org.dasein.cloud.compute.ImageClass;
@@ -54,7 +57,7 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
 
     private ObjectManagement om = new ObjectManagement();
 
-    public ImageSupport(Vsphere provider) {
+    public ImageSupport(@Nonnull Vsphere provider) {
         super(provider);
 
         this.provider = provider;
@@ -99,45 +102,65 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
     // TODO: Going to need to move these to a VsphereStubs class
     //
     public ManagedObjectReference getViewManager() {
-        ManagedObjectReference viewManager = serviceContent.getViewManager();
-
-        //om.writeJsonFile(viewManager, "src/test/resources/ImageSupport/viewManager.json");
-
-        return viewManager;
+        return serviceContent.getViewManager();
     }
 
     public ManagedObjectReference getRootFolder() {
-        ManagedObjectReference rootFolder = serviceContent.getRootFolder();
+        return serviceContent.getRootFolder();
 
-        //om.writeJsonFile(rootFolder, "src/test/resources/ImageSupport/rootFolder.json");
-
-        return rootFolder;
     }
 
     public ManagedObjectReference createContainerView(ManagedObjectReference viewManager, ManagedObjectReference rootFolder, List<String> vmList, boolean b) throws RuntimeFaultFaultMsg {
-        ManagedObjectReference containerView = vimPort.createContainerView(viewManager, rootFolder, vmList, b);
-
-        //om.writeJsonFile(containerView, "src/test/resources/ImageSupport/containerView.json");
-
-        return containerView;
+        return vimPort.createContainerView(viewManager, rootFolder, vmList, b);
     }
 
     public ManagedObjectReference getPropertyCollector() {
-        ManagedObjectReference propertyCollector = serviceContent.getPropertyCollector();
+        return serviceContent.getPropertyCollector();
 
-        //om.writeJsonFile(propertyCollector, "src/test/resources/ImageSupport/propertyCollector.json");
-
-        return propertyCollector;
     }
 
     public RetrieveResult retrievePropertiesEx(ManagedObjectReference propColl, List<PropertyFilterSpec> fSpecList, RetrieveOptions ro) throws InvalidPropertyFaultMsg, RuntimeFaultFaultMsg {
-        RetrieveResult propertiesEx = vimPort.retrievePropertiesEx(propColl, fSpecList, ro);
-
-        //om.writeJsonFile(propertiesEx, "src/test/resources/ImageSupport/propertiesEx.json");
-
-        return propertiesEx;
+        return vimPort.retrievePropertiesEx(propColl, fSpecList, ro);
     }
 
+    public List<PropertyFilterSpec> getlistImagesPropertyFilterSpec() throws RuntimeFaultFaultMsg {
+
+        ManagedObjectReference viewManager = getViewManager();
+        ManagedObjectReference rootFolder = getRootFolder();
+        List<String> vmList = new ArrayList<String>();
+        vmList.add("VirtualMachine");
+        ManagedObjectReference cViewRef = createContainerView(viewManager, rootFolder, vmList, true);
+
+        // create a traversal spec to select all objects in the view
+        TraversalSpec tSpec = new TraversalSpec();
+        tSpec.setName("traverseEntities");
+        tSpec.setPath("view");
+        tSpec.setSkip(false);
+        tSpec.setType("ContainerView");
+
+        // create an object spec to define the beginning of the traversal;
+        // container view is the root object for this traversal
+        ObjectSpec oSpec = new ObjectSpec();
+        oSpec.setObj(cViewRef);
+        oSpec.setSkip(false);
+        oSpec.getSelectSet().add(tSpec);
+
+        // specify the property for retrieval (virtual machine name)
+        PropertySpec pSpec = new PropertySpec();
+        pSpec.setType("VirtualMachine");
+        pSpec.getPathSet().add("summary.config");
+
+        PropertyFilterSpec fSpec = new PropertyFilterSpec();
+        fSpec.getObjectSet().add(oSpec);
+        fSpec.getPropSet().add(pSpec);
+
+        // Create a list for the filters and add the spec to it
+        List<PropertyFilterSpec> fSpecList = new ArrayList<PropertyFilterSpec>();
+        fSpecList.add(fSpec);
+        
+        return fSpecList;
+    }
+    
     @Override
     public Iterable<MachineImage> listImages(ImageFilterOptions options) throws CloudException, InternalException {
         APITrace.begin(getProvider(), "ImageSupport.listImages");
@@ -152,51 +175,9 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
         ArrayList<MachineImage> machineImages = new ArrayList<MachineImage>();
 
         try {
-            ManagedObjectReference viewManager = getViewManager();
+            String regionId = getProvider().getContext().getRegionId();
 
-            List<String> vmList = new ArrayList<String>();
-            vmList.add("VirtualMachine");
-
-            ManagedObjectReference rootFolder = getRootFolder();
-
-            ManagedObjectReference cViewRef = createContainerView(viewManager, rootFolder, vmList, true);
-
-            // create a traversal spec to select all objects in the view
-            TraversalSpec tSpec = new TraversalSpec();
-            tSpec.setName("traverseEntities");
-            tSpec.setPath("view");
-            tSpec.setSkip(false);
-            tSpec.setType("ContainerView");
-
-            // create an object spec to define the beginning of the traversal;
-            // container view is the root object for this traversal
-            ObjectSpec oSpec = new ObjectSpec();
-            oSpec.setObj(cViewRef);
-            oSpec.setSkip(false);
-            oSpec.getSelectSet().add(tSpec);
-
-            // specify the property for retrieval (virtual machine name)
-            PropertySpec pSpec = new PropertySpec();
-            pSpec.setType("VirtualMachine");
-            //pSpec.getPathSet().add("summary");
-            //pSpec.getPathSet().add("summary.guest.guestfullName"); 
-            pSpec.getPathSet().add("summary.config");
-
-            //pSpec.getPathSet().add("summary.config.name"); // USED
-            //pSpec.getPathSet().add("summary.overallStatus");
-            //pSpec.getPathSet().add("summary.runtime"); // VM support...
-            //pSpec.getPathSet().add("summary.quickStats"); // VM usage and capability details
-
-            // http://pubs.vmware.com/vsphere-60/topic/com.vmware.wssdk.pg.doc/images/VirtualMachine-VirtualMachineSummary-VMConfig.jpg
-            // see above when modifying code to work for listVm's
-
-            PropertyFilterSpec fSpec = new PropertyFilterSpec();
-            fSpec.getObjectSet().add(oSpec);
-            fSpec.getPropSet().add(pSpec);
-
-            // Create a list for the filters and add the spec to it
-            List<PropertyFilterSpec> fSpecList = new ArrayList<PropertyFilterSpec>();
-            fSpecList.add(fSpec);
+            List<PropertyFilterSpec> fSpecList = getlistImagesPropertyFilterSpec();
 
             // get the data from the server
             RetrieveResult props = null;
@@ -208,15 +189,16 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
 
             if (props != null) {
                 for (ObjectContent oc : props.getObjects()) {
+
+                    System.out.println("LOOP");
                     Platform platform = null;
                     String name = null;
                     String description = null;
                     String imageId = null;
-                    String regionId = "datacenter-21"; //provider.getContext().getRegionId();
+
                     MachineImageState state = null;
                     Architecture architecture = Architecture.I64;
 
-                    VirtualMachineSummary virtualMachineSummary = null;
                     VirtualMachineConfigSummary virtualMachineConfigSummary = null;
                     List<DynamicProperty> dps = oc.getPropSet();
                     if (dps != null) {
@@ -252,12 +234,15 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
                                      platform);
                             if (options.matches(machineImage)) {
                                 machineImages.add(machineImage);
+                                System.out.println("MATCH");
                             }
                          }
                      }
                  }
              }
         } catch ( RuntimeFaultFaultMsg e ) {
+            throw new CloudException(e);
+        } catch ( Exception e ) {
             throw new CloudException(e);
         } finally {
             APITrace.end();
