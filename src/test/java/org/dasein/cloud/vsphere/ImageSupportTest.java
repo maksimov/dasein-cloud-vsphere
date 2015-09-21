@@ -7,19 +7,13 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
 */
 
-import static org.junit.Assert.*;
-
-import java.io.File;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
+import org.apache.log4j.Logger;
 import org.dasein.cloud.CloudException;
-import org.dasein.cloud.CloudProvider;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.compute.ImageFilterOptions;
 import org.dasein.cloud.compute.MachineImage;
-import org.dasein.cloud.util.APITrace;
 import org.dasein.cloud.vsphere.compute.server.ImageSupport;
 
 import com.vmware.vim25.ManagedObjectReference;
@@ -39,6 +33,8 @@ import mockit.*;
  */
 @RunWith(JUnit4.class)
 public class ImageSupportTest {
+    @Mocked
+    Logger logger;
 
     private ObjectManagement om = new ObjectManagement();
 
@@ -48,6 +44,7 @@ public class ImageSupportTest {
 
     @Test
     public void testListImages() {
+
         ImageFilterOptions options = ImageFilterOptions.getInstance();
         ImageSupport imageSupport = new ImageSupport();
 
@@ -78,14 +75,6 @@ public class ImageSupportTest {
             }
         };
 
-        new MockUp<APITrace>() {
-            @Mock
-            public void begin(@Nonnull CloudProvider provider, @Nonnull String operationName) {}
-
-            @Mock
-            public void end() { }
-        };
-
         Iterable<MachineImage> result = null;
         try {
             result = imageSupport.listImages(options);
@@ -97,6 +86,50 @@ public class ImageSupportTest {
 
         //assertNotNull("return should not be null", result);
     }
+    
+    //@Test
+    public void getImage() {
 
+
+        ImageSupport imageSupport = new ImageSupport();
+
+        new MockUp<ImageSupport>() {
+            @Mock
+            public ManagedObjectReference getViewManager() {
+                return om.readJsonFile("src/test/resources/ImageSupport/viewManager.json", ManagedObjectReference.class);
+            }
+
+            @Mock
+            private ManagedObjectReference getRootFolder() {
+                return om.readJsonFile("src/test/resources/ImageSupport/rootFolder.json", ManagedObjectReference.class);
+            }
+
+            @Mock
+            private ManagedObjectReference createContainerView(ManagedObjectReference viewManager, ManagedObjectReference rootFolder, List<String> vmList, boolean b) {
+                return om.readJsonFile("src/test/resources/ImageSupport/containerView.json", ManagedObjectReference.class);
+            }
+
+            @Mock
+            private ManagedObjectReference getPropertyCollector() {
+                return om.readJsonFile("src/test/resources/ImageSupport/propertyCollector.json", ManagedObjectReference.class);
+            }
+
+            @Mock
+            private RetrieveResult retrievePropertiesEx(ManagedObjectReference propColl, List<PropertyFilterSpec> fSpecList, RetrieveOptions ro) {
+                return om.readJsonFile("src/test/resources/ImageSupport/propertiesEx.json", RetrieveResult.class);
+            }
+        };
+
+        Iterable<MachineImage> result = null;
+        try {
+            result = (Iterable<MachineImage>) imageSupport.getImage("dcm-agent-win2012");
+            System.out.println("inspect");
+        } catch ( CloudException e ) {
+            e.printStackTrace();
+        } catch ( InternalException e ) {
+            e.printStackTrace();
+        }
+
+    }
 
 }

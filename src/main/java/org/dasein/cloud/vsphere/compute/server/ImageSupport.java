@@ -8,14 +8,20 @@ import org.apache.log4j.Logger;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.compute.AbstractImageSupport;
+import org.dasein.cloud.compute.Architecture;
+import org.dasein.cloud.compute.ImageClass;
 import org.dasein.cloud.compute.ImageFilterOptions;
 import org.dasein.cloud.compute.MachineImage;
+import org.dasein.cloud.compute.MachineImageState;
+import org.dasein.cloud.compute.Platform;
+import org.dasein.cloud.vsphere.ObjectManagement;
 import org.dasein.cloud.vsphere.Vsphere;
 import org.dasein.cloud.vsphere.VsphereConnection;
 import org.dasein.cloud.vsphere.capabilities.VsphereImageCapabilities;
 
 import com.vmware.vim25.DynamicProperty;
 import com.vmware.vim25.InvalidPropertyFaultMsg;
+import com.vmware.vim25.ManagedEntityStatus;
 import com.vmware.vim25.ManagedObjectReference;
 import com.vmware.vim25.ObjectContent;
 import com.vmware.vim25.ObjectSpec;
@@ -28,6 +34,7 @@ import com.vmware.vim25.ServiceContent;
 import com.vmware.vim25.TraversalSpec;
 import com.vmware.vim25.VimPortType;
 import com.vmware.vim25.VirtualMachineConfigSummary;
+import com.vmware.vim25.VirtualMachineGuestSummary;
 import com.vmware.vim25.VirtualMachineSummary;
 
 import org.dasein.cloud.util.APITrace;
@@ -45,7 +52,7 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
     private VimPortType vimPort;
     private ServiceContent serviceContent;
 
-    //private ObjectManagement om = new ObjectManagement();
+    private ObjectManagement om = new ObjectManagement();
 
     public ImageSupport(Vsphere provider) {
         super(provider);
@@ -76,14 +83,16 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
 
     @Override
     public MachineImage getImage(String providerImageId) throws CloudException, InternalException {
+        ImageFilterOptions options = ImageFilterOptions.getInstance(true, providerImageId);
         // TODO Auto-generated method stub
-        return null;
+        Iterable<MachineImage> images = listImages(options);
+
+        return images.iterator().next();
     }
 
     @Override
     public boolean isSubscribed() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return false;
+        return true;
     }
 
     //
@@ -131,11 +140,16 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
 
     @Override
     public Iterable<MachineImage> listImages(ImageFilterOptions options) throws CloudException, InternalException {
-        APITrace.begin(provider, "listImages");
+        APITrace.begin(getProvider(), "ImageSupport.listImages");
+        final ImageFilterOptions opts;
+
+        if (options == null) {
+            opts = ImageFilterOptions.getInstance();
+        } else {
+            opts = options;
+        }
+
         ArrayList<MachineImage> machineImages = new ArrayList<MachineImage>();
-        //
-        // need to cope with image filter options...
-        //
 
         try {
             ManagedObjectReference viewManager = getViewManager();
@@ -164,9 +178,15 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
             // specify the property for retrieval (virtual machine name)
             PropertySpec pSpec = new PropertySpec();
             pSpec.setType("VirtualMachine");
-            pSpec.getPathSet().add("name");
-            //pSpec.getPathSet().add("summary.guest");
+            //pSpec.getPathSet().add("summary");
+            //pSpec.getPathSet().add("summary.guest.guestfullName"); 
             pSpec.getPathSet().add("summary.config");
+
+            //pSpec.getPathSet().add("summary.config.name"); // USED
+            //pSpec.getPathSet().add("summary.overallStatus");
+            //pSpec.getPathSet().add("summary.runtime"); // VM support...
+            //pSpec.getPathSet().add("summary.quickStats"); // VM usage and capability details
+
             // http://pubs.vmware.com/vsphere-60/topic/com.vmware.wssdk.pg.doc/images/VirtualMachine-VirtualMachineSummary-VMConfig.jpg
             // see above when modifying code to work for listVm's
 
@@ -179,91 +199,72 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
             fSpecList.add(fSpec);
 
             // get the data from the server
-            RetrieveResult props = retrievePropertiesEx(getPropertyCollector(), fSpecList, new RetrieveOptions());
-            
-            //ObjectMapper mapper = new ObjectMapper().setVisibility(JsonMethod.FIELD, Visibility.ANY);
-            //mapper.configure(Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            //mapper.enableDefaultTypingAsProperty(DefaultTyping.OBJECT_AND_NON_CONCRETE, "type");
-            
-            //System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(props));
-            //RetrieveResult mockProps = mapper.readValue(mapper.writeValueAsString(props), RetrieveResult.class);
-            //RetrieveResult rr = mapper.readValue(new File("src/test/resources/ImageSupport/propertiesEx.json"), RetrieveResult.class);
+            RetrieveResult props = null;
+            try {
+                props = retrievePropertiesEx(getPropertyCollector(), fSpecList, new RetrieveOptions());
+            } catch ( InvalidPropertyFaultMsg e ) {
+                throw new CloudException(e);
+            }
+
             if (props != null) {
                 for (ObjectContent oc : props.getObjects()) {
+                    Platform platform = null;
                     String name = null;
-                    Object value = null;
+                    String description = null;
+                    String imageId = null;
+                    String regionId = "datacenter-21"; //provider.getContext().getRegionId();
+                    MachineImageState state = null;
+                    Architecture architecture = Architecture.I64;
+
+                    VirtualMachineSummary virtualMachineSummary = null;
+                    VirtualMachineConfigSummary virtualMachineConfigSummary = null;
                     List<DynamicProperty> dps = oc.getPropSet();
                     if (dps != null) {
-                         VirtualMachineSummary virtualMachineSummary = null;
-                         VirtualMachineConfigSummary virtualMachineConfigSummary = null;
                          for (DynamicProperty dp : dps) {
-                             name = dp.getName();
-                             if (name.equals("summary")) {
-                                 virtualMachineSummary = (VirtualMachineSummary) dp.getVal();
-
-                                 if (virtualMachineSummary.getConfig().isTemplate() == false) {
-                                     break;
-                                 }
-                                 System.out.println("TEMPLATE!");
-
-
-                             } else if (name.equals("summary.config")) {
+                              if (dp.getName().equals("summary.config")) {
                                  virtualMachineConfigSummary = (VirtualMachineConfigSummary) dp.getVal();
-                                 if (virtualMachineConfigSummary.isTemplate() == false) {
-                                     break;
+                             } else if (dp.getName().equals("summary.config.name")) {
+                                 name = virtualMachineConfigSummary.getName();
+                             } else if (dp.getName().equals("summary.overallStatus")) {
+                                 ManagedEntityStatus s = (ManagedEntityStatus) dp.getVal();
+                                 state = MachineImageState.ERROR;
+                                 if (s.equals(ManagedEntityStatus.GREEN)) {
+                                     state = MachineImageState.ACTIVE;
                                  }
-                                 System.out.println("TEMPLATE!");
-                                 //virtualMachineConfigSummary = (VirtualMachineConfigSummary)dp.getVal();
-                                 //if (virtualMachineConfigSummary.isTemplate() == false) {
-                                 //    break;
-                                 //}
-                                 //String guestId = virtualMachineConfigSummary.getGuestId();
-                                 //String guestUUID = virtualMachineConfigSummary.getInstanceUuid();
-                                 //System.out.println("inspect");
-                             } else {
-                                 value = dp.getVal();
-                                 System.out.println(name + " = " + value.toString());
                              }
+                         }
+
+                         description = virtualMachineConfigSummary.getGuestFullName();
+                         imageId = virtualMachineConfigSummary.getGuestId();
+                         platform = Platform.guess(virtualMachineConfigSummary.getGuestFullName());
+                         ImageClass imageClass = ImageClass.MACHINE;
+
+                         if (virtualMachineConfigSummary.isTemplate()) { 
+                            MachineImage machineImage = MachineImage.getInstance(
+                                     "ownerId",
+                                     regionId,
+                                     imageId,
+                                     imageClass,
+                                     state,
+                                     name,
+                                     description,
+                                     architecture,
+                                     platform);
+                            if (options.matches(machineImage)) {
+                                machineImages.add(machineImage);
+                            }
                          }
                      }
                  }
-                /*
-                 * datacenter-21 or domain-c26
-                MachineImage image = MachineImage.getInstance(
-                        ownerId, 
-                        regionId, // provider.getServiceInstance(); should betray this.
-                        imageId, // guestId/guestUuid
-                        imageClass, // always vmx
-                        state, // found
-                        name, // guestId/guestUuid
-                        description, // guest full name
-                        architecture, // featureRequirement could betray cpu type...
-                        platform) // guestId/guestFullName
-                */
-                MachineImage machineImage = null; //MachineImage.getInstance("UNKNOWN", regionId, imageId, imageClass, state, name, description, architecture, platform).
-                machineImages.add(machineImage);
              }
-             
-            
-
-            
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println(e);
-        }
-        finally {
+        } catch ( RuntimeFaultFaultMsg e ) {
+            throw new CloudException(e);
+        } finally {
             APITrace.end();
         }
-        
-        
-        return null;
+
+        return machineImages;
     }
-
-
-
-
-
-
 
     @Override
     public void remove(String providerImageId, boolean checkState) throws CloudException, InternalException {
