@@ -72,10 +72,6 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
         serviceContent = vsphereConnection.getServiceContent();
     }
 
-    public ImageSupport() { 
-        super(null);
-    }  // for mock testing NEVER use....
-
     @Override
     public VsphereImageCapabilities getCapabilities() throws CloudException, InternalException {
         if (capabilities == null) {
