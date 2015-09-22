@@ -7,6 +7,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
 */
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -21,6 +22,11 @@ import com.vmware.vim25.ManagedObjectReference;
 import com.vmware.vim25.PropertyFilterSpec;
 import com.vmware.vim25.RetrieveOptions;
 import com.vmware.vim25.RetrieveResult;
+import com.vmware.vim25.RuntimeFaultFaultMsg;
+import com.vmware.vim25.ServiceContent;
+import com.vmware.vim25.UserSession;
+import com.vmware.vim25.VimPortType;
+import com.vmware.vim25.VimService;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -41,14 +47,31 @@ public class ImageSupportTest {
     Vsphere vsphereMock;
     @Mocked
     Logger logger;
+    @Mocked
+    VsphereConnection connectionMock;
 
+    @Mocked
+    VimPortType vimPortMock;
+    @Mocked 
+    VimService vimServiceMock;
+    @Mocked 
+    UserSession userSessionMock;
+    @Mocked
+    ServiceContent serviceContentMock;
 
+    @Mocked
+    ManagedObjectReference managedObjectReference;
+    
+    
+    
+    
     protected final String ACCOUNT_NO = "TESTACCOUNTNO";
     protected final String REGION = "datacenter-21";
     protected final String ENDPOINT = "TESTENDPOINT";
 
     @Before
-    public void setUp() {
+    public void setUp() throws RuntimeFaultFaultMsg {
+        final ManagedObjectReference viewManagerResult = om.readJsonFile("src/test/resources/ImageSupport/propertyCollector.json", ManagedObjectReference.class);
         new NonStrictExpectations() {
             { vsphereMock.getContext(); result = providerContextMock; }
         };
@@ -58,6 +81,24 @@ public class ImageSupportTest {
             { providerContextMock.getRegionId(); result = REGION; }
             { providerContextMock.getEndpoint(); result = ENDPOINT;}
         };
+
+        new NonStrictExpectations() {
+            { connectionMock.getVimPort(); result = vimPortMock;}
+            { connectionMock.getServiceContent(); result = serviceContentMock; }
+            { connectionMock.getUserSession(); result = userSessionMock;}
+            { connectionMock.getServiceContent(); result = serviceContentMock;}
+        };
+        
+        new NonStrictExpectations() {
+            { serviceContentMock.getViewManager(); result = om.readJsonFile("src/test/resources/ImageSupport/rootFolder.json", ManagedObjectReference.class);}
+            { serviceContentMock.getRootFolder(); result = om.readJsonFile("src/test/resources/ImageSupport/rootFolder.json", ManagedObjectReference.class);}
+        };
+        
+        new NonStrictExpectations() {
+            { 
+
+                vimPortMock.createContainerView(serviceContentMock.getViewManager(), serviceContentMock.getRootFolder(), new ArrayList<String>(), true); result = om.readJsonFile("src/test/resources/ImageSupport/containerView.json", ManagedObjectReference.class);}    
+        };
     }
 
     private ObjectManagement om = new ObjectManagement();
@@ -66,22 +107,14 @@ public class ImageSupportTest {
     public void nop() {
     }
 
-    @Test
+    //@Test
     public void testListImages() {
 
         ImageFilterOptions options = ImageFilterOptions.getInstance();
         ImageSupport imageSupport = new ImageSupport(vsphereMock);
 
-        new MockUp<ImageSupport>() {
-            @Mock
-            public ManagedObjectReference getViewManager() {
-                return om.readJsonFile("src/test/resources/ImageSupport/viewManager.json", ManagedObjectReference.class);
-            }
 
-            @Mock
-            private ManagedObjectReference getRootFolder() {
-                return om.readJsonFile("src/test/resources/ImageSupport/rootFolder.json", ManagedObjectReference.class);
-            }
+        new MockUp<ImageSupport>() {
 
             @Mock
             private ManagedObjectReference createContainerView(ManagedObjectReference viewManager, ManagedObjectReference rootFolder, List<String> vmList, boolean b) {
