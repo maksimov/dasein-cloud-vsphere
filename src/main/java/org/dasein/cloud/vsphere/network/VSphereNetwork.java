@@ -1,16 +1,13 @@
 package org.dasein.cloud.vsphere.network;
 
-import com.vmware.vim25.PropertySpec;
-import com.vmware.vim25.RetrieveResult;
-import com.vmware.vim25.SelectionSpec;
-import com.vmware.vim25.TraversalSpec;
+import com.vmware.vim25.*;
 import org.apache.log4j.Logger;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
-import org.dasein.cloud.network.AbstractVLANSupport;
-import org.dasein.cloud.network.VLAN;
-import org.dasein.cloud.network.VLANCapabilities;
+import org.dasein.cloud.VisibleScope;
+import org.dasein.cloud.network.*;
 import org.dasein.cloud.util.APITrace;
+import org.dasein.cloud.vsphere.ObjectManagement;
 import org.dasein.cloud.vsphere.Vsphere;
 import org.dasein.cloud.vsphere.VsphereInventoryNavigation;
 
@@ -31,7 +28,7 @@ public class VSphereNetwork extends AbstractVLANSupport {
     public List<SelectionSpec> networkSSpec;
     static private final Logger log = Vsphere.getLogger(VSphereNetwork.class);
 
-    VSphereNetwork(Vsphere provider) {
+    public VSphereNetwork(Vsphere provider) {
         super(provider);
         this.provider = provider;
     }
@@ -49,27 +46,8 @@ public class VSphereNetwork extends AbstractVLANSupport {
             propertySpec.setAll(Boolean.TRUE);
             propertySpec.setType("Network");
             networkPSpec.add(propertySpec);
-
-            // Create Property Spec
-            PropertySpec propertySpec2 = new PropertySpec();
-            propertySpec2.setAll(Boolean.TRUE);
-            propertySpec2.setType("DistributedVirtualSwitch");
-            networkPSpec.add(propertySpec2);
         }
         return networkPSpec;
-    }
-
-    public List<SelectionSpec> getNetworkSSpec() {
-        if (networkSSpec == null) {
-            networkSSpec = new ArrayList<SelectionSpec>();
-            TraversalSpec crToH = new TraversalSpec();
-            crToH.setSkip(Boolean.FALSE);
-            crToH.setType("ComputeResource");
-            crToH.setPath("host");
-            crToH.setName("crToH");
-            networkSSpec.add(crToH);
-        }
-        return networkSSpec;
     }
 
     private transient volatile VSphereNetworkCapabilities capabilities;
@@ -110,18 +88,62 @@ public class VSphereNetwork extends AbstractVLANSupport {
     public Iterable<VLAN> listVlans() throws CloudException, InternalException {
         APITrace.begin(provider, "VSphereNetwork.listVlans");
         try {
+            ObjectManagement om = new ObjectManagement();
             List<VLAN> list = new ArrayList<VLAN>();
-
-            //List<SelectionSpec> selectionSpecsArr = getNetworkSSpec();
             List<PropertySpec> pSpecs = getNetworkPSpec();
 
             RetrieveResult listobcont = retrieveObjectList(provider, "networkFolder", null, pSpecs);
 
-
+            if (listobcont != null) {
+                List<ObjectContent> objectContents = listobcont.getObjects();
+                for (ObjectContent oc : objectContents) {
+                    ManagedObjectReference mo = oc.getObj();
+                    String id = mo.getValue();
+                    String networkType = mo.getType();
+                    if (networkType.equals("Network") || networkType.equals("DistributedVirtualPortgroup")) {
+                        List<DynamicProperty> props = oc.getPropSet();
+                        String networkName = null, dvsId = null;
+                        boolean state = false;
+                        for (DynamicProperty dp : props) {
+                            if (dp.getName().equals("summary")) {
+                                NetworkSummary ns = (NetworkSummary) dp.getVal();
+                                state = ns.isAccessible();
+                                networkName = ns.getName();
+                            }
+                            else if (dp.getVal() instanceof DVPortgroupConfigInfo) {
+                                DVPortgroupConfigInfo di = (DVPortgroupConfigInfo) dp.getVal();
+                                ManagedObjectReference switchMO = di.getDistributedVirtualSwitch();
+                                dvsId = switchMO.getValue();
+                            }
+                        }
+                        VLAN vlan = toVlan(id, networkName, state, dvsId);
+                        if (vlan != null) {
+                            list.add(vlan);
+                        }
+                    }
+                }
+            }
             return list;
         }
         finally {
             APITrace.end();
         }
+    }
+
+    private VLAN toVlan(@Nonnull String id, @Nonnull String name, @Nullable boolean available, @Nullable String switchID) throws InternalException, CloudException {
+        VLAN vlan = new VLAN();
+        vlan.setName(name);
+        vlan.setDescription(name + " ("+id+")");
+        vlan.setProviderVlanId(id);
+        vlan.setCidr("");
+        if( switchID != null) {
+            vlan.setTag("switch.uuid", switchID);
+        }
+        vlan.setProviderRegionId(getContext().getRegionId());
+        vlan.setProviderOwnerId(getContext().getAccountNumber());
+        vlan.setSupportedTraffic(IPVersion.IPV4);
+        vlan.setVisibleScope(VisibleScope.ACCOUNT_REGION);
+        vlan.setCurrentState(available ? VLANState.AVAILABLE : VLANState.PENDING);
+        return vlan;
     }
 }
