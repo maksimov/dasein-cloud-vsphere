@@ -7,8 +7,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
 */
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.List;
 
@@ -16,8 +15,12 @@ import mockit.NonStrictExpectations;
 
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
+import org.dasein.cloud.compute.Architecture;
+import org.dasein.cloud.compute.ImageClass;
 import org.dasein.cloud.compute.ImageFilterOptions;
 import org.dasein.cloud.compute.MachineImage;
+import org.dasein.cloud.compute.MachineImageState;
+import org.dasein.cloud.compute.Platform;
 import org.dasein.cloud.vsphere.compute.server.ImageSupport;
 import org.junit.Before;
 import org.junit.Test;
@@ -66,6 +69,8 @@ public class ImageSupportTest extends VsphereTestBase {
 
         Iterable<MachineImage> result = imageSupport.listImages(ImageFilterOptions.getInstance());
 
+        assertNotNull("return should not be null", result);
+
         int count = 0;
         for (MachineImage image : result) {
             count++;
@@ -79,18 +84,100 @@ public class ImageSupportTest extends VsphereTestBase {
             assertNotNull("Returned image Architecture should not be null", image.getArchitecture());
             assertNotNull("Returned image Platform should not be null", image.getPlatform());
         }
-        assertNotNull("return should not be null", result);
-        assertTrue("found images should = 12, not " + count, count == 12);
+        assertTrue("found images should = 12, not " + count, 12 == count);
     }
 
-    //@Test
-    public void getImage() throws CloudException, InternalException {
+    @Test
+    public void testListImagesAllUbuntu() throws CloudException, InternalException {
         final ImageSupport imageSupport = new ImageSupport(vsphereMock);
 
-        Iterable<MachineImage> result = (Iterable<MachineImage>) imageSupport.getImage("dcm-agent-win2012");
-        System.out.println("inspect");
+        Iterable<MachineImage> result = imageSupport.listImages(ImageFilterOptions.getInstance().onPlatform(Platform.UBUNTU));
 
+        assertNotNull("return should not be null", result);
 
+        int count = 0;
+        for (MachineImage image : result) {
+            count++;
+        }
+        assertTrue("found images should = 2, not " + count, 2 == count);
     }
 
+    public void testListImagesAllDebian() throws CloudException, InternalException {
+        final ImageSupport imageSupport = new ImageSupport(vsphereMock);
+
+        Iterable<MachineImage> result = imageSupport.listImages(ImageFilterOptions.getInstance().onPlatform(Platform.UBUNTU));
+
+        assertNotNull("return should not be null", result);
+
+        int count = 0;
+        for (MachineImage image : result) {
+            count++;
+        }
+        assertTrue("found images should = 2, not " + count, 2 == count);
+    }
+
+    public void testListImagesAllWindows() throws CloudException, InternalException {
+        final ImageSupport imageSupport = new ImageSupport(vsphereMock);
+
+        Iterable<MachineImage> result = imageSupport.listImages(ImageFilterOptions.getInstance().onPlatform(Platform.UBUNTU));
+
+        assertNotNull("return should not be null", result);
+
+        int count = 0;
+        for (MachineImage image : result) {
+            count++;
+        }
+        assertTrue("found images should = 8, not " + count, 8 == count);
+    }
+
+    @Test
+    public void getImageDebian() throws CloudException, InternalException {
+        final ImageSupport imageSupport = new ImageSupport(vsphereMock);
+
+        MachineImage image = imageSupport.getImage("roger u debian");
+
+        assertEquals("ownerId", image.getProviderOwnerId());
+        assertEquals("datacenter-21", image.getProviderRegionId());
+        assertEquals("debian7_64Guest", image.getProviderMachineImageId());
+        assertEquals(ImageClass.MACHINE, image.getImageClass());
+        assertEquals(MachineImageState.ACTIVE, image.getCurrentState());
+        assertEquals("roger u debian", image.getName());
+        assertEquals("Debian GNU/Linux 7 (64-bit)", image.getDescription());
+        assertEquals(Architecture.I64, image.getArchitecture());
+        assertEquals(Platform.DEBIAN, image.getPlatform());
+    }
+
+    @Test
+    public void getImageUbuntu() throws CloudException, InternalException {
+        final ImageSupport imageSupport = new ImageSupport(vsphereMock);
+
+        MachineImage image = imageSupport.getImage("ubuntu-twdemo-dcmagent");
+
+        assertEquals("ownerId", image.getProviderOwnerId());
+        assertEquals("datacenter-21", image.getProviderRegionId());
+        assertEquals("ubuntu64Guest", image.getProviderMachineImageId());
+        assertEquals(ImageClass.MACHINE, image.getImageClass());
+        assertEquals(MachineImageState.ACTIVE, image.getCurrentState());
+        assertEquals("ubuntu-twdemo-dcmagent", image.getName());
+        assertEquals("Ubuntu Linux (64-bit)", image.getDescription());
+        assertEquals(Architecture.I64, image.getArchitecture());
+        assertEquals(Platform.UBUNTU, image.getPlatform());
+    }
+
+    @Test
+    public void getImageWindows() throws CloudException, InternalException {
+        final ImageSupport imageSupport = new ImageSupport(vsphereMock);
+
+        MachineImage image = imageSupport.getImage("dcm-agent-win2012");
+
+        assertEquals("ownerId", image.getProviderOwnerId());
+        assertEquals("datacenter-21", image.getProviderRegionId());
+        assertEquals("windows8Server64Guest", image.getProviderMachineImageId());
+        assertEquals(ImageClass.MACHINE, image.getImageClass());
+        assertEquals(MachineImageState.ACTIVE, image.getCurrentState());
+        assertEquals("dcm-agent-win2012", image.getName());
+        assertEquals("Microsoft Windows Server 2012 (64-bit)", image.getDescription());
+        assertEquals(Architecture.I64, image.getArchitecture());
+        assertEquals(Platform.WINDOWS, image.getPlatform());
+    }
 }
