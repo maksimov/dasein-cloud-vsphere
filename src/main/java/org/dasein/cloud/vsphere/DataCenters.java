@@ -83,8 +83,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             PropertySpec propertySpec = new PropertySpec();
             propertySpec.setAll(Boolean.FALSE);
             propertySpec.getPathSet().add("name");
-            propertySpec.getPathSet().add("overallStatus");
-            propertySpec.setType("ClusterComputeResource");
+            propertySpec.setType("Datacenter");
             regionPSpecs.add(propertySpec);
         }
         return regionPSpecs;

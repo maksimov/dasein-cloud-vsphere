@@ -90,6 +90,6 @@ public class HostSupportTest extends VsphereTestBase{
         };
 
         AffinityGroup ag = hs.get("myFakeHost");
-        assertTrue("Region returned but id was made up", ag == null);
+        assertTrue("Host returned but id was made up", ag == null);
     }
 }

@@ -29,6 +29,7 @@ import org.dasein.cloud.CloudException;
 import org.dasein.cloud.ContextRequirements;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.ProviderContext;
+import org.dasein.cloud.network.NetworkServices;
 import org.dasein.cloud.vsphere.compute.VsphereCompute;
 
 import com.vmware.vim25.ManagedObjectReference;
@@ -38,6 +39,7 @@ import com.vmware.vim25.UserSession;
 import com.vmware.vim25.VimPortType;
 import com.vmware.vim25.VimService;
 
+import org.dasein.cloud.vsphere.network.VSphereNetworkServices;
 import org.dasein.util.CalendarWrapper;
 
 import javax.annotation.Nonnull;
@@ -112,6 +114,12 @@ public class Vsphere extends AbstractCloud {
                  new ContextRequirements.Field("proxyHost", "Proxy host", ContextRequirements.FieldType.TEXT, null, false),
                  new ContextRequirements.Field("proxyPort", "Proxy port", ContextRequirements.FieldType.TEXT, null, false)
          );
+    }
+
+    @Nullable
+    @Override
+    public NetworkServices getNetworkServices() {
+        return new VSphereNetworkServices(this);
     }
 
     public @Nonnull VsphereConnection getServiceInstance() throws CloudException, InternalException {
