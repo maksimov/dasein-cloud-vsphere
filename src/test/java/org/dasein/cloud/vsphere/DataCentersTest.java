@@ -95,6 +95,32 @@ public class DataCentersTest extends VsphereTestBase{
         assertTrue("Region returned but id was made up", region == null);
     }
 
+    @Test(expected = InvalidPropertyFaultMsg.class)
+    public void invalidListRegionsRequestThrowsException() throws CloudException, InternalException {
+        final DataCenters dc = new DataCenters(vsphereMock);
+        final List<PropertySpec> props = new ArrayList<PropertySpec>();
+        PropertySpec propertySpec = new PropertySpec();
+        propertySpec.setAll(Boolean.FALSE);
+        propertySpec.setType("DataCenter");
+        propertySpec.getPathSet().add("name");
+        propertySpec.getPathSet().add("config");
+        props.add(propertySpec);
+
+        new Expectations(DataCenters.class) {
+            {dc.retrieveObjectList(vsphereMock, "hostFolder", (List) any, props);
+                result = new InvalidPropertyFaultMsg("error", new InvalidProperty());
+            };
+        };
+
+        dc.retrieveObjectList(vsphereMock, "hostFolder", null, props);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void nullBaseFolderInRequestThrowsException() throws CloudException, InternalException {
+        final DataCenters dc = new DataCenters(vsphereMock);
+        dc.retrieveObjectList(vsphereMock, null, null, null);
+    }
+
     @Test
     public void listDataCentersTest() throws CloudException, InternalException{
         final DataCenters dc = new DataCenters(vsphereMock);
