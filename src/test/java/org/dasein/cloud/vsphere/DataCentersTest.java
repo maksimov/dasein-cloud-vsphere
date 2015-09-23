@@ -33,6 +33,13 @@ import static org.junit.Assert.*;
 public class DataCentersTest extends VsphereTestBase{
 
     private ObjectManagement om = new ObjectManagement();
+    private final RetrieveResult regions = om.readJsonFile("src/test/resources/DataCenters/regions.json", RetrieveResult.class);
+    private final RetrieveResult datacenters = om.readJsonFile("src/test/resources/DataCenters/datacenters.json", RetrieveResult.class);
+    private final RetrieveResult resourcePools = om.readJsonFile("src/test/resources/DataCenters/resourcePools.json", RetrieveResult.class);
+    private final RetrieveResult storagePools = om.readJsonFile("src/test/resources/DataCenters/storagePools.json", RetrieveResult.class);
+    private final AffinityGroup[] daseinHosts = om.readJsonFile("src/test/resources/DataCenters/daseinHosts.json", AffinityGroup[].class);
+    private final RetrieveResult vmFolders = om.readJsonFile("src/test/resources/DataCenters/vmFolders.json", RetrieveResult.class);
+
     @Mocked
     VsphereCompute vsphereComputeMock;
     @Mocked
@@ -45,7 +52,7 @@ public class DataCentersTest extends VsphereTestBase{
 
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/regions.json", RetrieveResult.class);
+                result = regions;
             }
         };
 
@@ -70,7 +77,7 @@ public class DataCentersTest extends VsphereTestBase{
 
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/regions.json", RetrieveResult.class);
+                result = regions;
             }
         };
 
@@ -87,7 +94,7 @@ public class DataCentersTest extends VsphereTestBase{
 
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/regions.json", RetrieveResult.class);
+                result = regions;
             }
         };
 
@@ -129,10 +136,10 @@ public class DataCentersTest extends VsphereTestBase{
 
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/regions.json", RetrieveResult.class);
+                result = regions;
             }
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, dcPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/datacenters.json", RetrieveResult.class);
+                result = datacenters;
             }
         };
 
@@ -160,10 +167,10 @@ public class DataCentersTest extends VsphereTestBase{
 
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/regions.json", RetrieveResult.class);
+                result = regions;
             }
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, dcPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/datacenters.json", RetrieveResult.class);
+                result = datacenters;
             }
         };
 
@@ -181,10 +188,10 @@ public class DataCentersTest extends VsphereTestBase{
 
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/regions.json", RetrieveResult.class);
+                result = regions;
             }
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, dcPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/datacenters.json", RetrieveResult.class);
+                result = datacenters;
             }
         };
 
@@ -200,7 +207,7 @@ public class DataCentersTest extends VsphereTestBase{
 
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", rpSSpecs, rpPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/resourcePools.json", RetrieveResult.class);
+                result = resourcePools;
             }
         };
 
@@ -228,7 +235,7 @@ public class DataCentersTest extends VsphereTestBase{
 
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", rpSSpecs, rpPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/resourcePools.json", RetrieveResult.class);
+                result = resourcePools;
             }
         };
 
@@ -248,7 +255,7 @@ public class DataCentersTest extends VsphereTestBase{
 
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", rpSSpecs, rpPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/resourcePools.json", RetrieveResult.class);
+                result = resourcePools;
             }
         };
 
@@ -264,12 +271,12 @@ public class DataCentersTest extends VsphereTestBase{
 
         new NonStrictExpectations(DataCenters.class) {
             { dc.retrieveObjectList(vsphereMock, anyString, spSSpecs, spPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/storagePools.json", RetrieveResult.class);
+                result = storagePools;
             }
             { vsphereMock.getComputeServices(); result = vsphereComputeMock; }
             { vsphereComputeMock.getAffinityGroupSupport(); result = vsphereAGMock; }
             { vsphereAGMock.list((AffinityGroupFilterOptions) any);
-                result = om.readJsonFile("src/test/resources/DataCenters/daseinHosts.json", AffinityGroup[].class);
+                result = daseinHosts;
             }
         };
 
@@ -301,12 +308,12 @@ public class DataCentersTest extends VsphereTestBase{
 
         new NonStrictExpectations(DataCenters.class) {
             { dc.retrieveObjectList(vsphereMock, anyString, spSSpecs, spPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/storagePools.json", RetrieveResult.class);
+                result = storagePools;
             }
             { vsphereMock.getComputeServices(); result = vsphereComputeMock; }
             { vsphereComputeMock.getAffinityGroupSupport(); result = vsphereAGMock; }
             { vsphereAGMock.list((AffinityGroupFilterOptions) any);
-                result = om.readJsonFile("src/test/resources/DataCenters/daseinHosts.json", AffinityGroup[].class);
+                result = daseinHosts;
             }
         };
 
@@ -329,12 +336,12 @@ public class DataCentersTest extends VsphereTestBase{
 
         new NonStrictExpectations(DataCenters.class) {
             { dc.retrieveObjectList(vsphereMock, anyString, spSSpecs, spPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/storagePools.json", RetrieveResult.class);
+                result = storagePools;
             }
             { vsphereMock.getComputeServices(); result = vsphereComputeMock; }
             { vsphereComputeMock.getAffinityGroupSupport(); result = vsphereAGMock; }
             { vsphereAGMock.list((AffinityGroupFilterOptions) any);
-                result = om.readJsonFile("src/test/resources/DataCenters/daseinHosts.json", AffinityGroup[].class);
+                result = daseinHosts;
             }
         };
 
@@ -349,7 +356,7 @@ public class DataCentersTest extends VsphereTestBase{
 
         new NonStrictExpectations(DataCenters.class) {
             { dc.retrieveObjectList(vsphereMock, anyString, null, vfPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/vmFolders.json", RetrieveResult.class);
+                result = vmFolders;
             }
         };
 
@@ -377,7 +384,7 @@ public class DataCentersTest extends VsphereTestBase{
 
         new NonStrictExpectations(DataCenters.class) {
             { dc.retrieveObjectList(vsphereMock, anyString, null, vfPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/vmFolders.json", RetrieveResult.class);
+                result = vmFolders;
             }
         };
 
@@ -397,7 +404,7 @@ public class DataCentersTest extends VsphereTestBase{
 
         new NonStrictExpectations(DataCenters.class) {
             { dc.retrieveObjectList(vsphereMock, anyString, null, vfPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/vmFolders.json", RetrieveResult.class);
+                result = vmFolders;
             }
         };
 

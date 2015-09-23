@@ -22,6 +22,7 @@ import static org.junit.Assert.*;
  */
 public class NetworksTest extends VsphereTestBase {
     private ObjectManagement om = new ObjectManagement();
+    private final RetrieveResult networks = om.readJsonFile("src/test/resources/Networks/networks.json", RetrieveResult.class);
 
     @Test
     public void listNetworksTest() throws CloudException, InternalException {
@@ -30,7 +31,7 @@ public class NetworksTest extends VsphereTestBase {
 
         new NonStrictExpectations(VSphereNetwork.class) {
             {network.retrieveObjectList(vsphereMock, "networkFolder", null, networkPSpec);
-                result = om.readJsonFile("src/test/resources/Networks/networks.json", RetrieveResult.class);
+                result = networks;
             }
         };
 
@@ -59,7 +60,7 @@ public class NetworksTest extends VsphereTestBase {
 
         new NonStrictExpectations(VSphereNetwork.class) {
             {network.retrieveObjectList(vsphereMock, "networkFolder", null, networkPSpec);
-                result = om.readJsonFile("src/test/resources/Networks/networks.json", RetrieveResult.class);
+                result = networks;
             }
         };
 
@@ -81,7 +82,7 @@ public class NetworksTest extends VsphereTestBase {
 
         new NonStrictExpectations(VSphereNetwork.class) {
             {network.retrieveObjectList(vsphereMock, "networkFolder", null, networkPSpec);
-                result = om.readJsonFile("src/test/resources/Networks/networks.json", RetrieveResult.class);
+                result = networks;
             }
         };
 

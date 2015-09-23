@@ -25,6 +25,7 @@ import static org.junit.Assert.assertTrue;
  */
 public class HostSupportTest extends VsphereTestBase{
     private ObjectManagement om = new ObjectManagement();
+    private final RetrieveResult hosts = om.readJsonFile("src/test/resources/HostSupport/hosts.json", RetrieveResult.class);
 
     @Test
     public void listHostsTest() throws CloudException, InternalException {
@@ -34,7 +35,7 @@ public class HostSupportTest extends VsphereTestBase{
 
         new NonStrictExpectations(HostSupport.class) {
             {hs.retrieveObjectList(vsphereMock, "hostFolder", hostSSpec, hostPSpec);
-                result = om.readJsonFile("src/test/resources/HostSupport/hosts.json", RetrieveResult.class);
+                result = hosts;
             }
         };
 
@@ -64,7 +65,7 @@ public class HostSupportTest extends VsphereTestBase{
 
         new NonStrictExpectations(HostSupport.class) {
             {hs.retrieveObjectList(vsphereMock, "hostFolder", hostSSpec, hostPSpec);
-                result = om.readJsonFile("src/test/resources/HostSupport/hosts.json", RetrieveResult.class);
+                result = hosts;
             }
         };
 
@@ -85,7 +86,7 @@ public class HostSupportTest extends VsphereTestBase{
 
         new NonStrictExpectations(HostSupport.class) {
             {hs.retrieveObjectList(vsphereMock, "hostFolder", hostSSpec, hostPSpec);
-                result = om.readJsonFile("src/test/resources/HostSupport/hosts.json", RetrieveResult.class);
+                result = hosts;
             }
         };
 
