@@ -53,7 +53,7 @@ public class VsphereTestBase {
     protected final String ENDPOINT = "TESTENDPOINT";
 
     @Before
-    public void setUp() throws RuntimeFaultFaultMsg, InvalidPropertyFaultMsg {
+    public void setUp() throws Exception {
         new NonStrictExpectations() {
             { vsphereMock.getContext(); result = providerContextMock; }
         };
