@@ -7,13 +7,10 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
 */
 
-import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
-import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.compute.ImageFilterOptions;
 import org.dasein.cloud.compute.MachineImage;
 import org.dasein.cloud.vsphere.compute.server.ImageSupport;
@@ -24,10 +21,6 @@ import com.vmware.vim25.PropertyFilterSpec;
 import com.vmware.vim25.RetrieveOptions;
 import com.vmware.vim25.RetrieveResult;
 import com.vmware.vim25.RuntimeFaultFaultMsg;
-import com.vmware.vim25.ServiceContent;
-import com.vmware.vim25.UserSession;
-import com.vmware.vim25.VimPortType;
-import com.vmware.vim25.VimService;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -43,18 +36,6 @@ import mockit.*;
 @RunWith(JUnit4.class)
 public class ImageSupportTest extends VsphereTestBase {
 
-
-
-
- //   @Mocked
- //   ManagedObjectReference managedObjectReference;
-    
-    
-    
-    
-    protected final String ACCOUNT_NO = "TESTACCOUNTNO";
-    protected final String REGION = "datacenter-21";
-    protected final String ENDPOINT = "TESTENDPOINT";
 
     @Before
     public void setUp() throws RuntimeFaultFaultMsg, InvalidPropertyFaultMsg {
