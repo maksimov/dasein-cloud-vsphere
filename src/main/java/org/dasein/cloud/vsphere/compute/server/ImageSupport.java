@@ -5,11 +5,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.log4j.Logger;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
-import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.compute.AbstractImageSupport;
 import org.dasein.cloud.compute.Architecture;
 import org.dasein.cloud.compute.ImageClass;
@@ -37,8 +37,6 @@ import com.vmware.vim25.ServiceContent;
 import com.vmware.vim25.TraversalSpec;
 import com.vmware.vim25.VimPortType;
 import com.vmware.vim25.VirtualMachineConfigSummary;
-import com.vmware.vim25.VirtualMachineGuestSummary;
-import com.vmware.vim25.VirtualMachineSummary;
 
 import org.dasein.cloud.util.APITrace;
 
@@ -51,17 +49,12 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
     private VsphereImageCapabilities capabilities;
     static private final Logger logger = Vsphere.getLogger(ImageSupport.class);
 
-    //private VsphereConnection vsphereConnection;
-    //private VimPortType vimPort;
-    //private ServiceContent serviceContent;
 
-    private ObjectManagement om = new ObjectManagement();
+    //private ObjectManagement om = new ObjectManagement();
 
     public ImageSupport(@Nonnull Vsphere provider) {
         super(provider);
-
         this.provider = provider;
-
     }
 
     @Override
@@ -86,44 +79,13 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
         return true;
     }
 
-    //
-    // TODO: Going to need to move these to a VsphereStubs class
-    //
-
-
-
-
-    public ManagedObjectReference createContainerView(ManagedObjectReference viewManager, ManagedObjectReference rootFolder, List<String> vmList, boolean b) throws RuntimeFaultFaultMsg, CloudException, InternalException {
-        VsphereConnection vsphereConnection = provider.getServiceInstance();
-        VimPortType vimPort = vsphereConnection.getVimPort();
-        return vimPort.createContainerView(viewManager, rootFolder, vmList, b);
-    }
-
-    public ManagedObjectReference getPropertyCollector() throws CloudException, InternalException {
-        VsphereConnection vsphereConnection = provider.getServiceInstance();
-        ServiceContent serviceContent = vsphereConnection.getServiceContent();
-        return serviceContent.getPropertyCollector();
-    }
-
-    public RetrieveResult retrievePropertiesEx(ManagedObjectReference propColl, List<PropertyFilterSpec> fSpecList, RetrieveOptions ro) throws InvalidPropertyFaultMsg, RuntimeFaultFaultMsg, CloudException, InternalException {
-        VsphereConnection vsphereConnection = provider.getServiceInstance();
-        VimPortType vimPort = vsphereConnection.getVimPort();
-        return vimPort.retrievePropertiesEx(propColl, fSpecList, ro);
-    }
-
-    public List<PropertyFilterSpec> getlistImagesPropertyFilterSpec() throws RuntimeFaultFaultMsg, CloudException, InternalException {
-        VsphereConnection vsphereConnection = provider.getServiceInstance();
-        VimPortType vimPort = vsphereConnection.getVimPort();
-        ServiceContent serviceContent = vsphereConnection.getServiceContent();
-
-
+    public List<PropertyFilterSpec> getlistImagesPropertyFilterSpec(ServiceContent serviceContent, VimPortType vimPort) throws RuntimeFaultFaultMsg, CloudException, InternalException {
         ManagedObjectReference viewManager = serviceContent.getViewManager();
         ManagedObjectReference rootFolder = serviceContent.getRootFolder();
 
         List<String> vmList = new ArrayList<String>();
         vmList.add("VirtualMachine");
         ManagedObjectReference cViewRef = vimPort.createContainerView(viewManager, rootFolder, vmList, true);
-        //ManagedObjectReference cViewRef = createContainerView(viewManager, rootFolder, vmList, true);
 
         // create a traversal spec to select all objects in the view
         TraversalSpec tSpec = new TraversalSpec();
@@ -156,19 +118,19 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
     }
     
     @Override
-    public Iterable<MachineImage> listImages(ImageFilterOptions options) throws CloudException, InternalException {
+    public Iterable<MachineImage> listImages(@Nullable ImageFilterOptions opts) throws CloudException, InternalException {
         APITrace.begin(getProvider(), "ImageSupport.listImages");
-        
+
         VsphereConnection vsphereConnection = provider.getServiceInstance();
         VimPortType vimPort = vsphereConnection.getVimPort();
         ServiceContent serviceContent = vsphereConnection.getServiceContent();
-        
-        final ImageFilterOptions opts;
 
-        if (options == null) {
-            opts = ImageFilterOptions.getInstance();
+        final ImageFilterOptions options;
+
+        if (opts == null) {
+            options = ImageFilterOptions.getInstance();
         } else {
-            opts = options;
+            options = opts;
         }
 
         ArrayList<MachineImage> machineImages = new ArrayList<MachineImage>();
@@ -176,12 +138,12 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
         try {
             String regionId = getProvider().getContext().getRegionId();
 
-            List<PropertyFilterSpec> fSpecList = getlistImagesPropertyFilterSpec();
+            List<PropertyFilterSpec> fSpecList = getlistImagesPropertyFilterSpec(serviceContent, vimPort);
 
             // get the data from the server
             RetrieveResult props = null;
             try {
-                props = retrievePropertiesEx(getPropertyCollector(), fSpecList, new RetrieveOptions());
+                props = vimPort.retrievePropertiesEx(serviceContent.getPropertyCollector(), fSpecList, new RetrieveOptions());
             } catch ( InvalidPropertyFaultMsg e ) {
                 throw new CloudException(e);
             }

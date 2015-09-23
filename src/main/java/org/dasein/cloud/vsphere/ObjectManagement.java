@@ -16,8 +16,8 @@ public class ObjectManagement {
     public <T> T readJsonFile(String filename, Class<T> valueType) {
         try {
             ObjectMapper mapper = new ObjectMapper();
-            //mapper.configure(Feature.FAIL_ON_UNKNOWN_PROPERTIES, true);
-            //mapper.enableDefaultTypingAsProperty(DefaultTyping.OBJECT_AND_NON_CONCRETE, "type");
+            mapper.configure(Feature.FAIL_ON_UNKNOWN_PROPERTIES, true);
+            mapper.enableDefaultTypingAsProperty(DefaultTyping.OBJECT_AND_NON_CONCRETE, "type");
             T result = (T) mapper.readValue(new File(filename), valueType);
             return result;
         } catch ( Exception e ) { 

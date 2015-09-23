@@ -18,6 +18,7 @@ import org.dasein.cloud.compute.ImageFilterOptions;
 import org.dasein.cloud.compute.MachineImage;
 import org.dasein.cloud.vsphere.compute.server.ImageSupport;
 
+import com.vmware.vim25.InvalidPropertyFaultMsg;
 import com.vmware.vim25.ManagedObjectReference;
 import com.vmware.vim25.PropertyFilterSpec;
 import com.vmware.vim25.RetrieveOptions;
@@ -59,8 +60,8 @@ public class ImageSupportTest {
     @Mocked
     ServiceContent serviceContentMock;
 
-    @Mocked
-    ManagedObjectReference managedObjectReference;
+ //   @Mocked
+ //   ManagedObjectReference managedObjectReference;
     
     
     
@@ -70,8 +71,13 @@ public class ImageSupportTest {
     protected final String ENDPOINT = "TESTENDPOINT";
 
     @Before
-    public void setUp() throws RuntimeFaultFaultMsg {
-        final ManagedObjectReference viewManagerResult = om.readJsonFile("src/test/resources/ImageSupport/propertyCollector.json", ManagedObjectReference.class);
+    public void setUp() throws RuntimeFaultFaultMsg, InvalidPropertyFaultMsg {
+        ObjectManagement om = new ObjectManagement();
+        final RetrieveResult propertiesEx = om.readJsonFile("src/test/resources/ImageSupport/propertiesEx.json", RetrieveResult.class); // WORKS
+        final ManagedObjectReference containerView = om.readJsonFile("src/test/resources/ImageSupport/containerView.json", ManagedObjectReference.class);
+        final ManagedObjectReference viewManager = om.readJsonFile("src/test/resources/ImageSupport/viewManager.json", ManagedObjectReference.class);
+        final ManagedObjectReference rootFolder = om.readJsonFile("src/test/resources/ImageSupport/rootFolder.json", ManagedObjectReference.class);
+
         new NonStrictExpectations() {
             { vsphereMock.getContext(); result = providerContextMock; }
         };
@@ -88,49 +94,29 @@ public class ImageSupportTest {
             { connectionMock.getUserSession(); result = userSessionMock;}
             { connectionMock.getServiceContent(); result = serviceContentMock;}
         };
-        
-        new NonStrictExpectations() {
-            { serviceContentMock.getViewManager(); result = om.readJsonFile("src/test/resources/ImageSupport/rootFolder.json", ManagedObjectReference.class);}
-            { serviceContentMock.getRootFolder(); result = om.readJsonFile("src/test/resources/ImageSupport/rootFolder.json", ManagedObjectReference.class);}
-        };
-        
-        new NonStrictExpectations() {
-            { 
 
-                vimPortMock.createContainerView(serviceContentMock.getViewManager(), serviceContentMock.getRootFolder(), new ArrayList<String>(), true); result = om.readJsonFile("src/test/resources/ImageSupport/containerView.json", ManagedObjectReference.class);}    
+        new NonStrictExpectations(){
+            { serviceContentMock.getViewManager(); result = viewManager; }
+            { serviceContentMock.getRootFolder(); result = rootFolder; }
+        };
+
+        new NonStrictExpectations(){
+            { vimPortMock.createContainerView((ManagedObjectReference)any, (ManagedObjectReference)any, (List<String>)any, anyBoolean); result = containerView; } // WORKS
+            { vimPortMock.retrievePropertiesEx((ManagedObjectReference)any, (List<PropertyFilterSpec>)any, (RetrieveOptions)any); result = propertiesEx; } // WORKS
         };
     }
 
-    private ObjectManagement om = new ObjectManagement();
 
     @Test
     public void nop() {
     }
 
-    //@Test
+    @Test
     public void testListImages() {
 
         ImageFilterOptions options = ImageFilterOptions.getInstance();
         ImageSupport imageSupport = new ImageSupport(vsphereMock);
 
-
-        new MockUp<ImageSupport>() {
-
-            @Mock
-            private ManagedObjectReference createContainerView(ManagedObjectReference viewManager, ManagedObjectReference rootFolder, List<String> vmList, boolean b) {
-                return om.readJsonFile("src/test/resources/ImageSupport/containerView.json", ManagedObjectReference.class);
-            }
-
-            @Mock
-            private ManagedObjectReference getPropertyCollector() {
-                return om.readJsonFile("src/test/resources/ImageSupport/propertyCollector.json", ManagedObjectReference.class);
-            }
-
-            @Mock
-            private RetrieveResult retrievePropertiesEx(ManagedObjectReference propColl, List<PropertyFilterSpec> fSpecList, RetrieveOptions ro) {
-                return om.readJsonFile("src/test/resources/ImageSupport/propertiesEx.json", RetrieveResult.class);
-            }
-        };
 
         Iterable<MachineImage> result = null;
         try {
@@ -146,36 +132,7 @@ public class ImageSupportTest {
     
     //@Test
     public void getImage() {
-
-
         ImageSupport imageSupport = new ImageSupport(vsphereMock);
-
-        new MockUp<ImageSupport>() {
-            @Mock
-            public ManagedObjectReference getViewManager() {
-                return om.readJsonFile("src/test/resources/ImageSupport/viewManager.json", ManagedObjectReference.class);
-            }
-
-            @Mock
-            private ManagedObjectReference getRootFolder() {
-                return om.readJsonFile("src/test/resources/ImageSupport/rootFolder.json", ManagedObjectReference.class);
-            }
-
-            @Mock
-            private ManagedObjectReference createContainerView(ManagedObjectReference viewManager, ManagedObjectReference rootFolder, List<String> vmList, boolean b) {
-                return om.readJsonFile("src/test/resources/ImageSupport/containerView.json", ManagedObjectReference.class);
-            }
-
-            @Mock
-            private ManagedObjectReference getPropertyCollector() {
-                return om.readJsonFile("src/test/resources/ImageSupport/propertyCollector.json", ManagedObjectReference.class);
-            }
-
-            @Mock
-            private RetrieveResult retrievePropertiesEx(ManagedObjectReference propColl, List<PropertyFilterSpec> fSpecList, RetrieveOptions ro) {
-                return om.readJsonFile("src/test/resources/ImageSupport/propertiesEx.json", RetrieveResult.class);
-            }
-        };
 
         Iterable<MachineImage> result = null;
         try {
