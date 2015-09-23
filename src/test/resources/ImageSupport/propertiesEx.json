@@ -2,36 +2,6 @@
   "token" : null,
   "objects" : [ "java.util.ArrayList", [ {
     "obj" : {
-      "value" : "vm-2106",
-      "type" : "VirtualMachine"
-    },
-    "propSet" : [ "java.util.ArrayList", [ {
-      "name" : "summary.config",
-      "val" : {
-        "type" : "com.vmware.vim25.VirtualMachineConfigSummary",
-        "name" : "shaun-dc1",
-        "template" : false,
-        "vmPathName" : "[shared-datastore-1] shaun-dc1/shaun-dc1.vmx",
-        "memorySizeMB" : 4096,
-        "cpuReservation" : 0,
-        "memoryReservation" : 0,
-        "numCpu" : 2,
-        "numEthernetCards" : 1,
-        "numVirtualDisks" : 1,
-        "uuid" : "422eb68e-da58-3c3c-f5a3-451cdce0e8af",
-        "instanceUuid" : "502e3823-a90e-36cc-5c1b-9dc369240f38",
-        "guestId" : "windows7Server64Guest",
-        "guestFullName" : "Microsoft Windows Server 2008 R2 (64-bit)",
-        "annotation" : "422eea85-b584-3f9a-04ad-1bd7366ebd68",
-        "product" : null,
-        "installBootRequired" : false,
-        "ftInfo" : null,
-        "managedBy" : null
-      }
-    } ] ],
-    "missingSet" : [ "java.util.ArrayList", [ ] ]
-  }, {
-    "obj" : {
       "value" : "vm-1835",
       "type" : "VirtualMachine"
     },
@@ -58,6 +28,9 @@
         "ftInfo" : null,
         "managedBy" : null
       }
+    }, {
+      "name" : "summary.overallStatus",
+      "val" : [ "com.vmware.vim25.ManagedEntityStatus", "GREEN" ]
     } ] ],
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
@@ -88,6 +61,9 @@
         "ftInfo" : null,
         "managedBy" : null
       }
+    }, {
+      "name" : "summary.overallStatus",
+      "val" : [ "com.vmware.vim25.ManagedEntityStatus", "GREEN" ]
     } ] ],
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
@@ -118,6 +94,9 @@
         "ftInfo" : null,
         "managedBy" : null
       }
+    }, {
+      "name" : "summary.overallStatus",
+      "val" : [ "com.vmware.vim25.ManagedEntityStatus", "GREEN" ]
     } ] ],
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
@@ -148,36 +127,9 @@
         "ftInfo" : null,
         "managedBy" : null
       }
-    } ] ],
-    "missingSet" : [ "java.util.ArrayList", [ ] ]
-  }, {
-    "obj" : {
-      "value" : "vm-1801",
-      "type" : "VirtualMachine"
-    },
-    "propSet" : [ "java.util.ArrayList", [ {
-      "name" : "summary.config",
-      "val" : {
-        "type" : "com.vmware.vim25.VirtualMachineConfigSummary",
-        "name" : "JumpBox-2k12r2",
-        "template" : false,
-        "vmPathName" : "[shared-datastore-1] JumpBox-2k12r2/JumpBox-2k12r2.vmx",
-        "memorySizeMB" : 4096,
-        "cpuReservation" : 0,
-        "memoryReservation" : 0,
-        "numCpu" : 2,
-        "numEthernetCards" : 2,
-        "numVirtualDisks" : 1,
-        "uuid" : "422e2186-1965-c558-0e4e-a77dac2bdcb5",
-        "instanceUuid" : "502ee25a-fe77-d5e9-ce39-edab1f850b15",
-        "guestId" : "windows7Server64Guest",
-        "guestFullName" : "Microsoft Windows Server 2008 R2 (64-bit)",
-        "annotation" : "",
-        "product" : null,
-        "installBootRequired" : false,
-        "ftInfo" : null,
-        "managedBy" : null
-      }
+    }, {
+      "name" : "summary.overallStatus",
+      "val" : [ "com.vmware.vim25.ManagedEntityStatus", "GREEN" ]
     } ] ],
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
@@ -208,6 +160,9 @@
         "ftInfo" : null,
         "managedBy" : null
       }
+    }, {
+      "name" : "summary.overallStatus",
+      "val" : [ "com.vmware.vim25.ManagedEntityStatus", "GREEN" ]
     } ] ],
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
@@ -238,6 +193,9 @@
         "ftInfo" : null,
         "managedBy" : null
       }
+    }, {
+      "name" : "summary.overallStatus",
+      "val" : [ "com.vmware.vim25.ManagedEntityStatus", "GREEN" ]
     } ] ],
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
@@ -268,6 +226,9 @@
         "ftInfo" : null,
         "managedBy" : null
       }
+    }, {
+      "name" : "summary.overallStatus",
+      "val" : [ "com.vmware.vim25.ManagedEntityStatus", "GREEN" ]
     } ] ],
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
@@ -298,6 +259,9 @@
         "ftInfo" : null,
         "managedBy" : null
       }
+    }, {
+      "name" : "summary.overallStatus",
+      "val" : [ "com.vmware.vim25.ManagedEntityStatus", "GREEN" ]
     } ] ],
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
@@ -328,6 +292,9 @@
         "ftInfo" : null,
         "managedBy" : null
       }
+    }, {
+      "name" : "summary.overallStatus",
+      "val" : [ "com.vmware.vim25.ManagedEntityStatus", "GREEN" ]
     } ] ],
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
@@ -358,6 +325,9 @@
         "ftInfo" : null,
         "managedBy" : null
       }
+    }, {
+      "name" : "summary.overallStatus",
+      "val" : [ "com.vmware.vim25.ManagedEntityStatus", "GREEN" ]
     } ] ],
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
@@ -388,6 +358,9 @@
         "ftInfo" : null,
         "managedBy" : null
       }
+    }, {
+      "name" : "summary.overallStatus",
+      "val" : [ "com.vmware.vim25.ManagedEntityStatus", "GREEN" ]
     } ] ],
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
@@ -418,96 +391,42 @@
         "ftInfo" : null,
         "managedBy" : null
       }
+    }, {
+      "name" : "summary.overallStatus",
+      "val" : [ "com.vmware.vim25.ManagedEntityStatus", "GREEN" ]
     } ] ],
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
     "obj" : {
-      "value" : "vm-2148",
+      "value" : "vm-2175",
       "type" : "VirtualMachine"
     },
     "propSet" : [ "java.util.ArrayList", [ {
       "name" : "summary.config",
       "val" : {
         "type" : "com.vmware.vim25.VirtualMachineConfigSummary",
-        "name" : "dcddemo-joomla-mysql-vm-0",
+        "name" : "jonnokey",
         "template" : false,
-        "vmPathName" : "[shared-datastore-1] dcddemo-joomla-mysql-vm-0/dcddemo-joomla-mysql-vm-0.vmx",
-        "memorySizeMB" : 4096,
-        "cpuReservation" : 0,
-        "memoryReservation" : 0,
-        "numCpu" : 1,
-        "numEthernetCards" : 1,
-        "numVirtualDisks" : 1,
-        "uuid" : "422e6122-5366-2d99-6567-bc19e2505dbb",
-        "instanceUuid" : "502e2ff5-ec54-e206-6e0e-d453215c147b",
-        "guestId" : "ubuntu64Guest",
-        "guestFullName" : "Ubuntu Linux (64-bit)",
-        "annotation" : "422e59e8-f46e-634a-6a99-c71fd25523dd",
-        "product" : null,
-        "installBootRequired" : false,
-        "ftInfo" : null,
-        "managedBy" : null
-      }
-    } ] ],
-    "missingSet" : [ "java.util.ArrayList", [ ] ]
-  }, {
-    "obj" : {
-      "value" : "vm-2137",
-      "type" : "VirtualMachine"
-    },
-    "propSet" : [ "java.util.ArrayList", [ {
-      "name" : "summary.config",
-      "val" : {
-        "type" : "com.vmware.vim25.VirtualMachineConfigSummary",
-        "name" : "shaunsp6-db-0",
-        "template" : false,
-        "vmPathName" : "[shared-datastore-1] shaunsp6-db-0/shaunsp6-db-0.vmx",
-        "memorySizeMB" : 4096,
-        "cpuReservation" : 0,
-        "memoryReservation" : 0,
-        "numCpu" : 2,
-        "numEthernetCards" : 1,
-        "numVirtualDisks" : 1,
-        "uuid" : "422eb4c2-8e4c-df91-7410-41b8379d9ab9",
-        "instanceUuid" : "502eb396-8be8-4fac-12d0-2e753c497d6b",
-        "guestId" : "windows8Server64Guest",
-        "guestFullName" : "Microsoft Windows Server 2012 (64-bit)",
-        "annotation" : "422e6160-1653-99df-9d70-606956a98e52",
-        "product" : null,
-        "installBootRequired" : false,
-        "ftInfo" : null,
-        "managedBy" : null
-      }
-    } ] ],
-    "missingSet" : [ "java.util.ArrayList", [ ] ]
-  }, {
-    "obj" : {
-      "value" : "vm-2135",
-      "type" : "VirtualMachine"
-    },
-    "propSet" : [ "java.util.ArrayList", [ {
-      "name" : "summary.config",
-      "val" : {
-        "type" : "com.vmware.vim25.VirtualMachineConfigSummary",
-        "name" : "sm-wintest1",
-        "template" : false,
-        "vmPathName" : "[shared-datastore-1] sm-wintest1/sm-wintest1.vmx",
+        "vmPathName" : "[shared-datastore-1] jonnokey/jonnokey.vmx",
         "memorySizeMB" : 2048,
         "cpuReservation" : 0,
         "memoryReservation" : 0,
         "numCpu" : 1,
         "numEthernetCards" : 1,
         "numVirtualDisks" : 1,
-        "uuid" : "422e5e1f-8d23-7f5c-a10c-56ed9276f6bc",
-        "instanceUuid" : "502ec167-bbc0-388b-7637-c03f4980239c",
+        "uuid" : "422e05ac-f5be-a78d-5fab-73e709ff19ea",
+        "instanceUuid" : "502eb23a-f2c2-4080-655b-01d206658b0d",
         "guestId" : "windows8Server64Guest",
         "guestFullName" : "Microsoft Windows Server 2012 (64-bit)",
-        "annotation" : "422e6160-1653-99df-9d70-606956a98e52",
+        "annotation" : "422e51c7-1c32-2fa4-06a7-2dfdf510d9e4",
         "product" : null,
         "installBootRequired" : false,
         "ftInfo" : null,
         "managedBy" : null
       }
+    }, {
+      "name" : "summary.overallStatus",
+      "val" : [ "com.vmware.vim25.ManagedEntityStatus", "GREEN" ]
     } ] ],
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
@@ -538,6 +457,9 @@
         "ftInfo" : null,
         "managedBy" : null
       }
+    }, {
+      "name" : "summary.overallStatus",
+      "val" : [ "com.vmware.vim25.ManagedEntityStatus", "GREEN" ]
     } ] ],
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
@@ -568,6 +490,9 @@
         "ftInfo" : null,
         "managedBy" : null
       }
+    }, {
+      "name" : "summary.overallStatus",
+      "val" : [ "com.vmware.vim25.ManagedEntityStatus", "GREEN" ]
     } ] ],
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
@@ -598,36 +523,9 @@
         "ftInfo" : null,
         "managedBy" : null
       }
-    } ] ],
-    "missingSet" : [ "java.util.ArrayList", [ ] ]
-  }, {
-    "obj" : {
-      "value" : "vm-2134",
-      "type" : "VirtualMachine"
-    },
-    "propSet" : [ "java.util.ArrayList", [ {
-      "name" : "summary.config",
-      "val" : {
-        "type" : "com.vmware.vim25.VirtualMachineConfigSummary",
-        "name" : "sm-dctest1",
-        "template" : false,
-        "vmPathName" : "[shared-datastore-1] sm-dctest1/sm-dctest1.vmx",
-        "memorySizeMB" : 2048,
-        "cpuReservation" : 0,
-        "memoryReservation" : 0,
-        "numCpu" : 1,
-        "numEthernetCards" : 1,
-        "numVirtualDisks" : 1,
-        "uuid" : "422edcbf-e038-3f65-8f1a-c5c99f47f522",
-        "instanceUuid" : "502e6990-6d82-6473-2cae-439662237371",
-        "guestId" : "windows7Server64Guest",
-        "guestFullName" : "Microsoft Windows Server 2008 R2 (64-bit)",
-        "annotation" : "422e455d-877b-e183-5a90-5969d5b2b9a0",
-        "product" : null,
-        "installBootRequired" : false,
-        "ftInfo" : null,
-        "managedBy" : null
-      }
+    }, {
+      "name" : "summary.overallStatus",
+      "val" : [ "com.vmware.vim25.ManagedEntityStatus", "GREEN" ]
     } ] ],
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
@@ -658,6 +556,9 @@
         "ftInfo" : null,
         "managedBy" : null
       }
+    }, {
+      "name" : "summary.overallStatus",
+      "val" : [ "com.vmware.vim25.ManagedEntityStatus", "GREEN" ]
     } ] ],
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
@@ -688,66 +589,9 @@
         "ftInfo" : null,
         "managedBy" : null
       }
-    } ] ],
-    "missingSet" : [ "java.util.ArrayList", [ ] ]
-  }, {
-    "obj" : {
-      "value" : "vm-2138",
-      "type" : "VirtualMachine"
-    },
-    "propSet" : [ "java.util.ArrayList", [ {
-      "name" : "summary.config",
-      "val" : {
-        "type" : "com.vmware.vim25.VirtualMachineConfigSummary",
-        "name" : "shaunsp6-sp-0",
-        "template" : false,
-        "vmPathName" : "[shared-datastore-1] shaunsp6-sp-0/shaunsp6-sp-0.vmx",
-        "memorySizeMB" : 4096,
-        "cpuReservation" : 0,
-        "memoryReservation" : 0,
-        "numCpu" : 2,
-        "numEthernetCards" : 1,
-        "numVirtualDisks" : 1,
-        "uuid" : "422e8d42-7531-2dd5-4ca6-d5f49fd1d988",
-        "instanceUuid" : "502ece0e-cc69-aaf6-840b-70492c5ae6ac",
-        "guestId" : "windows8Server64Guest",
-        "guestFullName" : "Microsoft Windows Server 2012 (64-bit)",
-        "annotation" : "422e6160-1653-99df-9d70-606956a98e52",
-        "product" : null,
-        "installBootRequired" : false,
-        "ftInfo" : null,
-        "managedBy" : null
-      }
-    } ] ],
-    "missingSet" : [ "java.util.ArrayList", [ ] ]
-  }, {
-    "obj" : {
-      "value" : "vm-2136",
-      "type" : "VirtualMachine"
-    },
-    "propSet" : [ "java.util.ArrayList", [ {
-      "name" : "summary.config",
-      "val" : {
-        "type" : "com.vmware.vim25.VirtualMachineConfigSummary",
-        "name" : "shaunsp6-dc-0",
-        "template" : false,
-        "vmPathName" : "[shared-datastore-1] shaunsp6-dc-0/shaunsp6-dc-0.vmx",
-        "memorySizeMB" : 4096,
-        "cpuReservation" : 0,
-        "memoryReservation" : 0,
-        "numCpu" : 2,
-        "numEthernetCards" : 1,
-        "numVirtualDisks" : 1,
-        "uuid" : "422ee3e2-0fa7-10e2-92d4-2117b738907c",
-        "instanceUuid" : "502e8541-e629-8661-8764-c374d75514bd",
-        "guestId" : "windows7Server64Guest",
-        "guestFullName" : "Microsoft Windows Server 2008 R2 (64-bit)",
-        "annotation" : "422e455d-877b-e183-5a90-5969d5b2b9a0",
-        "product" : null,
-        "installBootRequired" : false,
-        "ftInfo" : null,
-        "managedBy" : null
-      }
+    }, {
+      "name" : "summary.overallStatus",
+      "val" : [ "com.vmware.vim25.ManagedEntityStatus", "GREEN" ]
     } ] ],
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
@@ -778,6 +622,42 @@
         "ftInfo" : null,
         "managedBy" : null
       }
+    }, {
+      "name" : "summary.overallStatus",
+      "val" : [ "com.vmware.vim25.ManagedEntityStatus", "GREEN" ]
+    } ] ],
+    "missingSet" : [ "java.util.ArrayList", [ ] ]
+  }, {
+    "obj" : {
+      "value" : "vm-2177",
+      "type" : "VirtualMachine"
+    },
+    "propSet" : [ "java.util.ArrayList", [ {
+      "name" : "summary.config",
+      "val" : {
+        "type" : "com.vmware.vim25.VirtualMachineConfigSummary",
+        "name" : "shaun-ubuntu1",
+        "template" : false,
+        "vmPathName" : "[shared-datastore-1] shaun-ubuntu1/shaun-ubuntu1.vmx",
+        "memorySizeMB" : 2048,
+        "cpuReservation" : 0,
+        "memoryReservation" : 0,
+        "numCpu" : 1,
+        "numEthernetCards" : 1,
+        "numVirtualDisks" : 1,
+        "uuid" : "422e4b49-079c-02e2-764a-edec30d0b474",
+        "instanceUuid" : "502e9b5c-2b91-a7ef-8130-bbd1454d143a",
+        "guestId" : "ubuntu64Guest",
+        "guestFullName" : "Ubuntu Linux (64-bit)",
+        "annotation" : "422e59e8-f46e-634a-6a99-c71fd25523dd",
+        "product" : null,
+        "installBootRequired" : false,
+        "ftInfo" : null,
+        "managedBy" : null
+      }
+    }, {
+      "name" : "summary.overallStatus",
+      "val" : [ "com.vmware.vim25.ManagedEntityStatus", "GREEN" ]
     } ] ],
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   }, {
@@ -808,6 +688,9 @@
         "ftInfo" : null,
         "managedBy" : null
       }
+    }, {
+      "name" : "summary.overallStatus",
+      "val" : [ "com.vmware.vim25.ManagedEntityStatus", "GREEN" ]
     } ] ],
     "missingSet" : [ "java.util.ArrayList", [ ] ]
   } ] ]
