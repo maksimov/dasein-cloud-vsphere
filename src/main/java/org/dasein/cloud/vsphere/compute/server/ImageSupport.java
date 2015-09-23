@@ -150,8 +150,6 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
 
             if (props != null) {
                 for (ObjectContent oc : props.getObjects()) {
-
-                    System.out.println("LOOP");
                     Platform platform = null;
                     String name = null;
                     String description = null;
@@ -195,7 +193,6 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
                                      platform);
                             if (options.matches(machineImage)) {
                                 machineImages.add(machineImage);
-                                System.out.println("MATCH");
                             }
                          }
                      }

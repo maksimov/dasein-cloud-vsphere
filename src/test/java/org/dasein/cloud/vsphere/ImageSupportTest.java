@@ -41,24 +41,10 @@ import mockit.*;
  * Date: 14/09/2015
  */
 @RunWith(JUnit4.class)
-public class ImageSupportTest {
-    @Mocked
-    ProviderContext providerContextMock;
-    @Mocked
-    Vsphere vsphereMock;
-    @Mocked
-    Logger logger;
-    @Mocked
-    VsphereConnection connectionMock;
+public class ImageSupportTest extends VsphereTestBase {
 
-    @Mocked
-    VimPortType vimPortMock;
-    @Mocked 
-    VimService vimServiceMock;
-    @Mocked 
-    UserSession userSessionMock;
-    @Mocked
-    ServiceContent serviceContentMock;
+
+
 
  //   @Mocked
  //   ManagedObjectReference managedObjectReference;
@@ -78,31 +64,18 @@ public class ImageSupportTest {
         final ManagedObjectReference viewManager = om.readJsonFile("src/test/resources/ImageSupport/viewManager.json", ManagedObjectReference.class);
         final ManagedObjectReference rootFolder = om.readJsonFile("src/test/resources/ImageSupport/rootFolder.json", ManagedObjectReference.class);
 
-        new NonStrictExpectations() {
-            { vsphereMock.getContext(); result = providerContextMock; }
-        };
-
-        new NonStrictExpectations() {
-            { providerContextMock.getAccountNumber(); result = ACCOUNT_NO; }
-            { providerContextMock.getRegionId(); result = REGION; }
-            { providerContextMock.getEndpoint(); result = ENDPOINT;}
-        };
-
-        new NonStrictExpectations() {
-            { connectionMock.getVimPort(); result = vimPortMock;}
-            { connectionMock.getServiceContent(); result = serviceContentMock; }
-            { connectionMock.getUserSession(); result = userSessionMock;}
-            { connectionMock.getServiceContent(); result = serviceContentMock;}
+        new NonStrictExpectations(){
+            { serviceContentMock.getViewManager();
+              result = viewManager; }
+            { serviceContentMock.getRootFolder();
+              result = rootFolder; }
         };
 
         new NonStrictExpectations(){
-            { serviceContentMock.getViewManager(); result = viewManager; }
-            { serviceContentMock.getRootFolder(); result = rootFolder; }
-        };
-
-        new NonStrictExpectations(){
-            { vimPortMock.createContainerView((ManagedObjectReference)any, (ManagedObjectReference)any, (List<String>)any, anyBoolean); result = containerView; } // WORKS
-            { vimPortMock.retrievePropertiesEx((ManagedObjectReference)any, (List<PropertyFilterSpec>)any, (RetrieveOptions)any); result = propertiesEx; } // WORKS
+            { vimPortMock.createContainerView((ManagedObjectReference)any, (ManagedObjectReference)any, (List<String>)any, anyBoolean); 
+              result = containerView; }
+            { vimPortMock.retrievePropertiesEx((ManagedObjectReference)any, (List<PropertyFilterSpec>)any, (RetrieveOptions)any); 
+              result = propertiesEx; }
         };
     }
 
