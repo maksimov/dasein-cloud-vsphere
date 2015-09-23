@@ -49,9 +49,6 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
     private VsphereImageCapabilities capabilities;
     static private final Logger logger = Vsphere.getLogger(ImageSupport.class);
 
-
-    //private ObjectManagement om = new ObjectManagement();
-
     public ImageSupport(@Nonnull Vsphere provider) {
         super(provider);
         this.provider = provider;
@@ -105,6 +102,7 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
         PropertySpec pSpec = new PropertySpec();
         pSpec.setType("VirtualMachine");
         pSpec.getPathSet().add("summary.config");
+        pSpec.getPathSet().add("summary.overallStatus");
 
         PropertyFilterSpec fSpec = new PropertyFilterSpec();
         fSpec.getObjectSet().add(oSpec);
@@ -113,10 +111,10 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
         // Create a list for the filters and add the spec to it
         List<PropertyFilterSpec> fSpecList = new ArrayList<PropertyFilterSpec>();
         fSpecList.add(fSpec);
-        
+
         return fSpecList;
     }
-    
+
     @Override
     public Iterable<MachineImage> listImages(@Nullable ImageFilterOptions opts) throws CloudException, InternalException {
         APITrace.begin(getProvider(), "ImageSupport.listImages");
@@ -154,8 +152,7 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
                     String name = null;
                     String description = null;
                     String imageId = null;
-
-                    MachineImageState state = null;
+                    MachineImageState state = MachineImageState.ERROR;
                     Architecture architecture = Architecture.I64;
 
                     VirtualMachineConfigSummary virtualMachineConfigSummary = null;
@@ -164,17 +161,14 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
                          for (DynamicProperty dp : dps) {
                               if (dp.getName().equals("summary.config")) {
                                  virtualMachineConfigSummary = (VirtualMachineConfigSummary) dp.getVal();
-                             } else if (dp.getName().equals("summary.config.name")) {
-                                 name = virtualMachineConfigSummary.getName();
                              } else if (dp.getName().equals("summary.overallStatus")) {
                                  ManagedEntityStatus s = (ManagedEntityStatus) dp.getVal();
-                                 state = MachineImageState.ERROR;
                                  if (s.equals(ManagedEntityStatus.GREEN)) {
                                      state = MachineImageState.ACTIVE;
                                  }
                              }
                          }
-
+                         name = virtualMachineConfigSummary.getName();
                          description = virtualMachineConfigSummary.getGuestFullName();
                          imageId = virtualMachineConfigSummary.getGuestId();
                          platform = Platform.guess(virtualMachineConfigSummary.getGuestFullName());
