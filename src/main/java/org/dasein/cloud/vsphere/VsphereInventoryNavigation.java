@@ -7,7 +7,6 @@ import org.dasein.cloud.InternalException;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 /**
@@ -64,8 +63,10 @@ public class VsphereInventoryNavigation {
         try {
             props = vimPortType.retrievePropertiesEx(vimServiceContent.getPropertyCollector(), listfps, new RetrieveOptions());
         } catch ( InvalidPropertyFaultMsg e ) {
-            throw new CloudException(e);
+            throw new InternalException("InvalidPropertyFault", e);
         } catch ( RuntimeFaultFaultMsg e ) {
+            throw new CloudException("RuntimeFault", e);
+        } catch ( Exception e ) {
             throw new CloudException(e);
         }
 

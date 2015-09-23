@@ -25,7 +25,6 @@ import java.util.Locale;
 public class VSphereNetwork extends AbstractVLANSupport {
     private Vsphere provider;
     public List<PropertySpec> networkPSpec;
-    public List<SelectionSpec> networkSSpec;
     static private final Logger log = Vsphere.getLogger(VSphereNetwork.class);
 
     public VSphereNetwork(Vsphere provider) {
@@ -88,7 +87,6 @@ public class VSphereNetwork extends AbstractVLANSupport {
     public Iterable<VLAN> listVlans() throws CloudException, InternalException {
         APITrace.begin(provider, "VSphereNetwork.listVlans");
         try {
-            ObjectManagement om = new ObjectManagement();
             List<VLAN> list = new ArrayList<VLAN>();
             List<PropertySpec> pSpecs = getNetworkPSpec();
 
