@@ -7,27 +7,27 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
 */
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.List;
+
+import mockit.NonStrictExpectations;
 
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.compute.ImageFilterOptions;
 import org.dasein.cloud.compute.MachineImage;
 import org.dasein.cloud.vsphere.compute.server.ImageSupport;
-
-import com.vmware.vim25.InvalidPropertyFaultMsg;
-import com.vmware.vim25.ManagedObjectReference;
-import com.vmware.vim25.PropertyFilterSpec;
-import com.vmware.vim25.RetrieveOptions;
-import com.vmware.vim25.RetrieveResult;
-import com.vmware.vim25.RuntimeFaultFaultMsg;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import mockit.*;
+import com.vmware.vim25.ManagedObjectReference;
+import com.vmware.vim25.PropertyFilterSpec;
+import com.vmware.vim25.RetrieveOptions;
+import com.vmware.vim25.RetrieveResult;
 
 /**
  * User: rogerunwin
@@ -36,14 +36,14 @@ import mockit.*;
 @RunWith(JUnit4.class)
 public class ImageSupportTest extends VsphereTestBase {
 
-
     @Before
-    public void setUp() throws RuntimeFaultFaultMsg, InvalidPropertyFaultMsg {
+    public void setUp() throws Exception {
+        super.setUp();
         ObjectManagement om = new ObjectManagement();
-        final RetrieveResult propertiesEx = om.readJsonFile("src/test/resources/ImageSupport/propertiesEx.json", RetrieveResult.class); // WORKS
         final ManagedObjectReference containerView = om.readJsonFile("src/test/resources/ImageSupport/containerView.json", ManagedObjectReference.class);
         final ManagedObjectReference viewManager = om.readJsonFile("src/test/resources/ImageSupport/viewManager.json", ManagedObjectReference.class);
         final ManagedObjectReference rootFolder = om.readJsonFile("src/test/resources/ImageSupport/rootFolder.json", ManagedObjectReference.class);
+        final RetrieveResult propertiesEx = om.readJsonFile("src/test/resources/ImageSupport/propertiesEx.json", RetrieveResult.class); // WORKS
 
         new NonStrictExpectations(){
             { serviceContentMock.getViewManager();
@@ -60,43 +60,36 @@ public class ImageSupportTest extends VsphereTestBase {
         };
     }
 
-
     @Test
-    public void nop() {
-    }
+    public void testListImagesAll() throws CloudException, InternalException {
+        final ImageSupport imageSupport = new ImageSupport(vsphereMock);
 
-    @Test
-    public void testListImages() {
+        Iterable<MachineImage> result = imageSupport.listImages(ImageFilterOptions.getInstance());
 
-        ImageFilterOptions options = ImageFilterOptions.getInstance();
-        ImageSupport imageSupport = new ImageSupport(vsphereMock);
-
-
-        Iterable<MachineImage> result = null;
-        try {
-            result = imageSupport.listImages(options);
-        } catch ( CloudException e ) {
-            e.printStackTrace();
-        } catch ( InternalException e ) {
-            e.printStackTrace();
+        int count = 0;
+        for (MachineImage image : result) {
+            count++;
+            assertNotNull("Returned image ProviderOwnerId should not be null", image.getProviderOwnerId());
+            assertNotNull("Returned image ProviderRegionId should not be null", image.getProviderRegionId());
+            assertNotNull("Returned image ProviderMachineImageId should not be null", image.getProviderMachineImageId());
+            assertNotNull("Returned image ImageClass should not be null", image.getImageClass());
+            assertNotNull("Returned image CurrentState should not be null", image.getCurrentState());
+            assertNotNull("Returned image Name should not be null", image.getName());
+            assertNotNull("Returned image Description should not be null", image.getDescription());
+            assertNotNull("Returned image Architecture should not be null", image.getArchitecture());
+            assertNotNull("Returned image Platform should not be null", image.getPlatform());
         }
-
-        //assertNotNull("return should not be null", result);
+        assertNotNull("return should not be null", result);
+        assertTrue("found images should = 12, not " + count, count == 12);
     }
-    
+
     //@Test
-    public void getImage() {
-        ImageSupport imageSupport = new ImageSupport(vsphereMock);
+    public void getImage() throws CloudException, InternalException {
+        final ImageSupport imageSupport = new ImageSupport(vsphereMock);
 
-        Iterable<MachineImage> result = null;
-        try {
-            result = (Iterable<MachineImage>) imageSupport.getImage("dcm-agent-win2012");
-            System.out.println("inspect");
-        } catch ( CloudException e ) {
-            e.printStackTrace();
-        } catch ( InternalException e ) {
-            e.printStackTrace();
-        }
+        Iterable<MachineImage> result = (Iterable<MachineImage>) imageSupport.getImage("dcm-agent-win2012");
+        System.out.println("inspect");
+
 
     }
 
