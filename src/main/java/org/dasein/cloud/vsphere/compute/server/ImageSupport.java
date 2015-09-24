@@ -8,16 +8,20 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.log4j.Logger;
+import org.dasein.cloud.AsynchronousTask;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
+import org.dasein.cloud.OperationNotSupportedException;
 import org.dasein.cloud.compute.AbstractImageSupport;
 import org.dasein.cloud.compute.Architecture;
 import org.dasein.cloud.compute.ImageClass;
+import org.dasein.cloud.compute.ImageCopyOptions;
+import org.dasein.cloud.compute.ImageCreateOptions;
 import org.dasein.cloud.compute.ImageFilterOptions;
 import org.dasein.cloud.compute.MachineImage;
+import org.dasein.cloud.compute.MachineImageFormat;
 import org.dasein.cloud.compute.MachineImageState;
 import org.dasein.cloud.compute.Platform;
-import org.dasein.cloud.vsphere.ObjectManagement;
 import org.dasein.cloud.vsphere.Vsphere;
 import org.dasein.cloud.vsphere.VsphereConnection;
 import org.dasein.cloud.vsphere.capabilities.VsphereImageCapabilities;
@@ -208,5 +212,16 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
         // TODO Auto-generated method stub
     }
 
+    @Override
+    protected MachineImage capture(@Nonnull ImageCreateOptions options, @Nullable AsynchronousTask<MachineImage> task) throws CloudException, InternalException {
+        // TODO Auto-generated method stub  capture vm to template
+        return null;
+    }
+
+    @Override
+    public @Nonnull String copyImage( @Nonnull ImageCopyOptions options ) throws CloudException, InternalException {
+        // TODO Auto-generated method stub - copy template to template
+        return null;
+    }
 
 }
