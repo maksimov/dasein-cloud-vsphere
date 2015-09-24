@@ -3,13 +3,19 @@ package org.dasein.cloud.vsphere;
 import com.vmware.vim25.PropertySpec;
 import com.vmware.vim25.RetrieveResult;
 import com.vmware.vim25.SelectionSpec;
+import mockit.Expectations;
 import mockit.NonStrictExpectations;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.compute.AffinityGroup;
 import org.dasein.cloud.compute.AffinityGroupFilterOptions;
 import org.dasein.cloud.dc.Region;
+import org.dasein.cloud.util.Cache;
+import org.dasein.cloud.util.CacheLevel;
 import org.dasein.cloud.vsphere.compute.HostSupport;
+import org.dasein.util.uom.time.Day;
+import org.dasein.util.uom.time.TimePeriod;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
@@ -26,16 +32,29 @@ import static org.junit.Assert.assertTrue;
 public class HostSupportTest extends VsphereTestBase{
     private ObjectManagement om = new ObjectManagement();
     private final RetrieveResult hosts = om.readJsonFile("src/test/resources/HostSupport/hosts.json", RetrieveResult.class);
+    private HostSupport hs = null;
+    private List<PropertySpec> hostPSpec = null;
+    private List<SelectionSpec> hostSSpec = null;
+
+    private Cache<AffinityGroup> cache = null;
+
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+        hs = new HostSupport(vsphereMock);
+        hostPSpec = hs.getHostPSpec();
+        hostSSpec = hs.getHostSSpec();
+        cache = Cache.getInstance(vsphereMock, "affinityGroups", AffinityGroup.class, CacheLevel.REGION_ACCOUNT, new TimePeriod<Day>(1, TimePeriod.DAY));
+    }
 
     @Test
-    public void listHostsTest() throws CloudException, InternalException {
-        final HostSupport hs = new HostSupport(vsphereMock);
-        final List<PropertySpec> hostPSpec = hs.getHostPSpec();
-        final List<SelectionSpec> hostSSpec = hs.getHostSSpec();
+    public void listHosts() throws CloudException, InternalException {
+        cache.clear();
 
-        new NonStrictExpectations(HostSupport.class) {
+        new Expectations(HostSupport.class) {
             {hs.retrieveObjectList(vsphereMock, "hostFolder", hostSSpec, hostPSpec);
                 result = hosts;
+                times=1;
             }
         };
 
@@ -43,11 +62,11 @@ public class HostSupportTest extends VsphereTestBase{
         assertNotNull(hosts);
         assertTrue(hosts.iterator().hasNext());
         AffinityGroup host = hosts.iterator().next();
-        assertEquals(host.getAffinityGroupId(), "host-43");
-        assertEquals(host.getAffinityGroupName(), "esquin-dev-vrtx-1-bl02.esquin.dev");
-        assertEquals(host.getDataCenterId(), "domain-c26");
-        assertEquals(host.getCreationTimestamp(), 0l, 0);
-        assertEquals(host.getDescription(), "Affinity group for esquin-dev-vrtx-1-bl02.esquin.dev");
+        assertEquals("host-43", host.getAffinityGroupId());
+        assertEquals("esquin-dev-vrtx-1-bl02.esquin.dev", host.getAffinityGroupName());
+        assertEquals("domain-c26", host.getDataCenterId());
+        assertEquals(0, host.getCreationTimestamp(), 0);
+        assertEquals("Affinity group for esquin-dev-vrtx-1-bl02.esquin.dev", host.getDescription());
         assertNotNull(host.getTags());
 
         int count = 0;
@@ -58,11 +77,7 @@ public class HostSupportTest extends VsphereTestBase{
     }
 
     @Test
-    public void getHostTest() throws CloudException, InternalException{
-        final HostSupport hs = new HostSupport(vsphereMock);
-        final List<PropertySpec> hostPSpec = hs.getHostPSpec();
-        final List<SelectionSpec> hostSSpec = hs.getHostSSpec();
-
+    public void getHost() throws CloudException, InternalException{
         new NonStrictExpectations(HostSupport.class) {
             {hs.retrieveObjectList(vsphereMock, "hostFolder", hostSSpec, hostPSpec);
                 result = hosts;
@@ -70,20 +85,16 @@ public class HostSupportTest extends VsphereTestBase{
         };
 
         AffinityGroup host = hs.get("host-72");
-        assertEquals(host.getAffinityGroupId(), "host-72");
-        assertEquals(host.getAffinityGroupName(), "esquin-dev-vrtx-1-bl03.esquin.dev");
-        assertEquals(host.getDataCenterId(), "domain-c70");
-        assertEquals(host.getCreationTimestamp(), 0l, 0);
-        assertEquals(host.getDescription(), "Affinity group for esquin-dev-vrtx-1-bl03.esquin.dev");
+        assertEquals("host-72", host.getAffinityGroupId());
+        assertEquals("esquin-dev-vrtx-1-bl03.esquin.dev", host.getAffinityGroupName());
+        assertEquals("domain-c70", host.getDataCenterId());
+        assertEquals(0, host.getCreationTimestamp(), 0);
+        assertEquals("Affinity group for esquin-dev-vrtx-1-bl03.esquin.dev", host.getDescription());
         assertNotNull(host.getTags());
     }
 
     @Test
-    public void getFakeHostTest() throws CloudException, InternalException{
-        final HostSupport hs = new HostSupport(vsphereMock);
-        final List<PropertySpec> hostPSpec = hs.getHostPSpec();
-        final List<SelectionSpec> hostSSpec = hs.getHostSSpec();
-
+    public void getFakeHostShouldReturnNull() throws CloudException, InternalException{
         new NonStrictExpectations(HostSupport.class) {
             {hs.retrieveObjectList(vsphereMock, "hostFolder", hostSSpec, hostPSpec);
                 result = hosts;
@@ -92,5 +103,20 @@ public class HostSupportTest extends VsphereTestBase{
 
         AffinityGroup ag = hs.get("myFakeHost");
         assertTrue("Host returned but id was made up", ag == null);
+    }
+
+    @Test
+    public void listShouldNotCallCloudIfHostCacheIsValid() throws CloudException, InternalException {
+        cache.clear(); //make sure cache is empty before we begin
+
+        new Expectations(HostSupport.class) {
+            {hs.retrieveObjectList(vsphereMock, "hostFolder", hostSSpec, hostPSpec);
+                result = hosts;
+                times=1;
+            }
+        };
+
+        hs.list(AffinityGroupFilterOptions.getInstance());
+        hs.list(AffinityGroupFilterOptions.getInstance());
     }
 }

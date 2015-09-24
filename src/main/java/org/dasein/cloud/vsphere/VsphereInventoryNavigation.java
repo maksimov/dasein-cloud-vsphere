@@ -23,6 +23,13 @@ public class VsphereInventoryNavigation {
     private static final String VIMSERVICEINSTANCEVALUE = "ServiceInstance";
 
     public RetrieveResult retrieveObjectList(Vsphere provider, @Nonnull String baseFolder, @Nullable List<SelectionSpec> selectionSpecsArr, @Nonnull List<PropertySpec> pSpecs) throws InternalException, CloudException {
+        if (pSpecs == null) {
+            throw new NullPointerException("PropertySpec must not be null");
+        }
+        if (pSpecs.size() == 0) {
+            throw new CloudException("PropertySpec list must have at least one element");
+        }
+
         VsphereConnection vsphereConnection = provider.getServiceInstance();
         ServiceContent serviceContent = vsphereConnection.getServiceContent();
         VimPortType vimPortType = vsphereConnection.getVimPort();
