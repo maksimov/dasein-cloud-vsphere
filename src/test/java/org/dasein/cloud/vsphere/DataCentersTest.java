@@ -15,6 +15,7 @@ import org.dasein.cloud.vsphere.compute.VsphereCompute;
 import org.dasein.util.uom.time.Day;
 import org.dasein.util.uom.time.Hour;
 import org.dasein.util.uom.time.TimePeriod;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -55,18 +56,48 @@ public class DataCentersTest extends VsphereTestBase{
     @Mocked
     AffinityGroupSupport vsphereAGMock;
 
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+        dc = new DataCenters(vsphereMock);
+        regPSpecs = dc.getRegionPropertySpec();
+        dcPSpecs = dc.getDataCenterPropertySpec();
+        rpSSpecs = dc.getResourcePoolSelectionSpec();
+        rpPSpecs = dc.getResourcePoolPropertySpec();
+        spSSpecs = dc.getStoragePoolSelectionSpec();
+        spPSpecs = dc.getStoragePoolPropertySpec();
+        vfPSpecs = dc.getVmFolderPropertySpec();
+
+        props = new ArrayList<PropertySpec>();
+        PropertySpec propertySpec = new PropertySpec();
+        propertySpec.setAll(Boolean.FALSE);
+        propertySpec.setType("DataCenter");
+        propertySpec.getPathSet().add("name");
+        propertySpec.getPathSet().add("config");
+        props.add(propertySpec);
+
+        new NonStrictExpectations() {
+            { vsphereMock.getComputeServices();
+                result = vsphereComputeMock;
+            }
+            { vsphereComputeMock.getAffinityGroupSupport();
+                result = vsphereAGMock;
+            }
+            { vsphereAGMock.list((AffinityGroupFilterOptions) any);
+                result = daseinHosts;
+            }
+        };
+    }
+
     @Test
     public void listRegionsTest() throws CloudException, InternalException {
-        final DataCenters dc = new DataCenters(vsphereMock);
         Cache<Region> cache = Cache.getInstance(vsphereMock, "regions", Region.class, CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(10, TimePeriod.HOUR));
         cache.clear(); //make sure cache is empty before we begin
-
-        final List<PropertySpec> regPSpecs = dc.getRegionPropertySpec();
 
         new Expectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
                 result = regions;
-                result = om.readJsonFile("src/test/resources/DataCenters/regions.json", RetrieveResult.class);
+                times=1;
             }
         };
 
@@ -86,9 +117,6 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void getRegionTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<PropertySpec> regPSpecs = dc.getRegionPropertySpec();
-
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
                 result = regions;
@@ -103,9 +131,6 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void getFakeRegionTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<PropertySpec> regPSpecs = dc.getRegionPropertySpec();
-
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
                 result = regions;
@@ -118,15 +143,12 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void listShouldNotCallCloudWhenRegionCacheIsValid() throws CloudException, InternalException {
-        final DataCenters dc = new DataCenters(vsphereMock);
         Cache<Region> cache = Cache.getInstance(vsphereMock, "regions", Region.class, CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(10, TimePeriod.HOUR));
         cache.clear(); //make sure cache is empty before we begin
 
-        final List<PropertySpec> regPSpecs = dc.getRegionPropertySpec();
-
         new Expectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/regions.json", RetrieveResult.class);
+                result = regions;
                 times=1; //should go to cloud first time only and cache should be used for second call
             }
         };
@@ -138,9 +160,6 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void listRegionsShouldReturnEmptyListIfCloudReturnsNothing() throws CloudException, InternalException {
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<PropertySpec> regPSpecs = dc.getRegionPropertySpec();
-
         new Expectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
                 result = new RetrieveResult();
@@ -157,8 +176,6 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test(expected = NoContextException.class)
     public void nullContextShouldThrowException() throws CloudException, InternalException {
-        DataCenters dc = new DataCenters(vsphereMock);
-
         new Expectations(DataCenters.class) {
             { vsphereMock.getContext(); result = null; }
         };
@@ -168,15 +185,6 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test(expected = InternalException.class)
     public void invalidListRegionsRequestShouldThrowException() throws CloudException, InternalException {
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<PropertySpec> props = new ArrayList<PropertySpec>();
-        PropertySpec propertySpec = new PropertySpec();
-        propertySpec.setAll(Boolean.FALSE);
-        propertySpec.setType("Datacenter");
-        propertySpec.getPathSet().add("name");
-        propertySpec.getPathSet().add("config"); //invalid property on a Datacenter object
-        props.add(propertySpec);
-
         new Expectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, props);
                 result = new InternalException("Invalid Property config for Datacenter", new InvalidPropertyFaultMsg("Invalid Property config for Datacenter", new InvalidProperty()));
@@ -188,14 +196,12 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test(expected = NullPointerException.class)
     public void nullPropertySpecInRequestShouldThrowException() throws CloudException, InternalException {
-        final DataCenters dc = new DataCenters(vsphereMock);
         dc.retrieveObjectList(vsphereMock, "hostFolder", new ArrayList<SelectionSpec>(), null);
     }
 
     @Test(expected = CloudException.class)
     public void emptyPropertySpecInRequestShouldThrowException() throws CloudException, InternalException {
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<PropertySpec> props = new ArrayList<PropertySpec>();
+        props = new ArrayList<PropertySpec>();
 
         new Expectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, props);
@@ -208,24 +214,16 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void listDataCentersTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
         Cache<DataCenter> dCache = Cache.getInstance(vsphereMock, "dataCenters", DataCenter.class, CacheLevel.REGION_ACCOUNT, new TimePeriod<Day>(1, TimePeriod.DAY));
         dCache.clear(); //make sure cache is empty before we begin
-
-        final List<PropertySpec> regPSpecs = dc.getRegionPropertySpec();
-        final List<PropertySpec> dcPSpecs = dc.getDataCenterPropertySpec();
 
         new Expectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
                 result = regions;
-            }
-            {dc.retrieveObjectList(vsphereMock, "hostFolder", null, dcPSpecs);
-                result = datacenters;
-                result = om.readJsonFile("src/test/resources/DataCenters/regions.json", RetrieveResult.class);
                 minTimes=0;
             }
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, dcPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/datacenters.json", RetrieveResult.class);
+                result = datacenters;
                 times=1;
             }
         };
@@ -248,10 +246,6 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void getDataCenterTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<PropertySpec> regPSpecs = dc.getRegionPropertySpec();
-        final List<PropertySpec> dcPSpecs = dc.getDataCenterPropertySpec();
-
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
                 result = regions;
@@ -269,10 +263,6 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void getFakeDataCenterTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<PropertySpec> regPSpecs = dc.getRegionPropertySpec();
-        final List<PropertySpec> dcPSpecs = dc.getDataCenterPropertySpec();
-
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
                 result = regions;
@@ -288,20 +278,16 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void listShouldNotCallCloudWhenDataCenterCacheIsValid() throws CloudException, InternalException {
-        final DataCenters dc = new DataCenters(vsphereMock);
         Cache<DataCenter> cache = Cache.getInstance(vsphereMock, "dataCenters", DataCenter.class, CacheLevel.REGION_ACCOUNT, new TimePeriod<Day>(1, TimePeriod.DAY));
         cache.clear(); //make sure cache is empty before we begin
 
-        final List<PropertySpec> regPSpecs = dc.getRegionPropertySpec();
-        final List<PropertySpec> dcPSpecs = dc.getDataCenterPropertySpec();
-
         new Expectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/regions.json", RetrieveResult.class);
+                result = regions;
                 minTimes=0;
             }
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, dcPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/datacenters.json", RetrieveResult.class);
+                result = datacenters;
                 times=1; //should go to the cloud the first time only
             }
         };
@@ -313,22 +299,17 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test(expected = CloudException.class)
     public void listDatacentersShouldThrowExceptionIfRegionNotValid() throws CloudException, InternalException {
-        final DataCenters dc = new DataCenters(vsphereMock);
         dc.listDataCenters("MyFakeRegionId");
     }
 
     @Test
     public void listDataCentersShouldReturnDummyDCIfCloudReturnsNothing() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
         Cache<DataCenter> cache = Cache.getInstance(vsphereMock, "dataCenters", DataCenter.class, CacheLevel.REGION_ACCOUNT, new TimePeriod<Day>(1, TimePeriod.DAY));
         cache.clear(); //make sure cache is empty before we begin
 
-        final List<PropertySpec> regPSpecs = dc.getRegionPropertySpec();
-        final List<PropertySpec> dcPSpecs = dc.getDataCenterPropertySpec();
-
         new Expectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/regions.json", RetrieveResult.class);
+                result = regions;
                 minTimes=0;
             }
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, dcPSpecs);
@@ -355,10 +336,6 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void listResourcePoolsTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<SelectionSpec> rpSSpecs = dc.getResourcePoolSelectionSpec();
-        final List<PropertySpec> rpPSpecs = dc.getResourcePoolPropertySpec();
-
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", rpSSpecs, rpPSpecs);
                 result = resourcePools;
@@ -383,10 +360,6 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void getResourcePoolTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<SelectionSpec> rpSSpecs = dc.getResourcePoolSelectionSpec();
-        final List<PropertySpec> rpPSpecs = dc.getResourcePoolPropertySpec();
-
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", rpSSpecs, rpPSpecs);
                 result = resourcePools;
@@ -403,10 +376,6 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void getFakeResourcePoolTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<SelectionSpec> rpSSpecs = dc.getResourcePoolSelectionSpec();
-        final List<PropertySpec> rpPSpecs = dc.getResourcePoolPropertySpec();
-
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", rpSSpecs, rpPSpecs);
                 result = resourcePools;
@@ -419,21 +388,12 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void listStoragePoolsTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<SelectionSpec> spSSpecs = dc.getStoragePoolSelectionSpec();
-        final List<PropertySpec> spPSpecs = dc.getStoragePoolPropertySpec();
-
         Cache<StoragePool> cache = Cache.getInstance(vsphereMock, "storagePools", StoragePool.class, CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(10, TimePeriod.HOUR));
         cache.clear();
 
         new NonStrictExpectations(DataCenters.class) {
             { dc.retrieveObjectList(vsphereMock, anyString, spSSpecs, spPSpecs);
                 result = storagePools;
-            }
-            { vsphereMock.getComputeServices(); result = vsphereComputeMock; }
-            { vsphereComputeMock.getAffinityGroupSupport(); result = vsphereAGMock; }
-            { vsphereAGMock.list((AffinityGroupFilterOptions) any);
-                result = daseinHosts;
             }
         };
 
@@ -459,18 +419,9 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void getStoragePoolTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<SelectionSpec> spSSpecs = dc.getStoragePoolSelectionSpec();
-        final List<PropertySpec> spPSpecs = dc.getStoragePoolPropertySpec();
-
         new NonStrictExpectations(DataCenters.class) {
             { dc.retrieveObjectList(vsphereMock, anyString, spSSpecs, spPSpecs);
                 result = storagePools;
-            }
-            { vsphereMock.getComputeServices(); result = vsphereComputeMock; }
-            { vsphereComputeMock.getAffinityGroupSupport(); result = vsphereAGMock; }
-            { vsphereAGMock.list((AffinityGroupFilterOptions) any);
-                result = daseinHosts;
             }
         };
 
@@ -487,18 +438,9 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void getFakeStoragePoolTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<SelectionSpec> spSSpecs = dc.getStoragePoolSelectionSpec();
-        final List<PropertySpec> spPSpecs = dc.getStoragePoolPropertySpec();
-
         new NonStrictExpectations(DataCenters.class) {
             { dc.retrieveObjectList(vsphereMock, anyString, spSSpecs, spPSpecs);
                 result = storagePools;
-            }
-            { vsphereMock.getComputeServices(); result = vsphereComputeMock; }
-            { vsphereComputeMock.getAffinityGroupSupport(); result = vsphereAGMock; }
-            { vsphereAGMock.list((AffinityGroupFilterOptions) any);
-                result = daseinHosts;
             }
         };
 
@@ -508,23 +450,13 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void listShouldNotCallCloudWhenStoragePoolCacheIsValid() throws CloudException, InternalException {
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<SelectionSpec> spSSpecs = dc.getStoragePoolSelectionSpec();
-        final List<PropertySpec> spPSpecs = dc.getStoragePoolPropertySpec();
-
         Cache<StoragePool> cache = Cache.getInstance(vsphereMock, "storagePools", StoragePool.class, CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(10, TimePeriod.HOUR));
         cache.clear();
 
         new Expectations(DataCenters.class) {
             { dc.retrieveObjectList(vsphereMock, anyString, spSSpecs, spPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/storagePools.json", RetrieveResult.class);
+                result = storagePools;
                 times=1;
-            }
-            { vsphereMock.getComputeServices(); result = vsphereComputeMock; minTimes=0;}
-            { vsphereComputeMock.getAffinityGroupSupport(); result = vsphereAGMock; minTimes=0;}
-            { vsphereAGMock.list((AffinityGroupFilterOptions) any);
-                result = om.readJsonFile("src/test/resources/DataCenters/daseinHosts.json", AffinityGroup[].class);
-                minTimes=0;
             }
         };
 
@@ -535,8 +467,6 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void listVmFoldersTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<PropertySpec> vfPSpecs = dc.getVmFolderPropertySpec();
         Cache<Folder> cache = Cache.getInstance(vsphereMock, "folders", Folder.class, CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(10, TimePeriod.HOUR));
         cache.clear();
 
@@ -565,9 +495,6 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void getVmFolderTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<PropertySpec> vfPSpecs = dc.getVmFolderPropertySpec();
-
         new NonStrictExpectations(DataCenters.class) {
             { dc.retrieveObjectList(vsphereMock, anyString, null, vfPSpecs);
                 result = vmFolders;
@@ -585,9 +512,6 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void getFakeVmFolderTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<PropertySpec> vfPSpecs = dc.getVmFolderPropertySpec();
-
         new NonStrictExpectations(DataCenters.class) {
             { dc.retrieveObjectList(vsphereMock, anyString, null, vfPSpecs);
                 result = vmFolders;
@@ -600,16 +524,13 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void listShouldNotCallCloudWhenVmFolderCacheIsValid() throws CloudException, InternalException {
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<PropertySpec> vfPSpecs = dc.getVmFolderPropertySpec();
-
         Cache<Folder> cache = Cache.getInstance(vsphereMock, "folders", Folder.class, CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(10, TimePeriod.HOUR));
         cache.clear();
 
-        new NonStrictExpectations(DataCenters.class) {
+        new Expectations(DataCenters.class) {
             {
                 dc.retrieveObjectList(vsphereMock, anyString, null, vfPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/vmFolders.json", RetrieveResult.class);
+                result = vmFolders;
                 times=1;
             }
         };

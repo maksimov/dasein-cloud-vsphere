@@ -10,6 +10,7 @@ import org.dasein.cloud.compute.AffinityGroup;
 import org.dasein.cloud.compute.AffinityGroupFilterOptions;
 import org.dasein.cloud.dc.Region;
 import org.dasein.cloud.vsphere.compute.HostSupport;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
@@ -26,13 +27,20 @@ import static org.junit.Assert.assertTrue;
 public class HostSupportTest extends VsphereTestBase{
     private ObjectManagement om = new ObjectManagement();
     private final RetrieveResult hosts = om.readJsonFile("src/test/resources/HostSupport/hosts.json", RetrieveResult.class);
+    private HostSupport hs = null;
+    private List<PropertySpec> hostPSpec = null;
+    private List<SelectionSpec> hostSSpec = null;
+
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+        hs = new HostSupport(vsphereMock);
+        hostPSpec = hs.getHostPSpec();
+        hostSSpec = hs.getHostSSpec();
+    }
 
     @Test
     public void listHostsTest() throws CloudException, InternalException {
-        final HostSupport hs = new HostSupport(vsphereMock);
-        final List<PropertySpec> hostPSpec = hs.getHostPSpec();
-        final List<SelectionSpec> hostSSpec = hs.getHostSSpec();
-
         new NonStrictExpectations(HostSupport.class) {
             {hs.retrieveObjectList(vsphereMock, "hostFolder", hostSSpec, hostPSpec);
                 result = hosts;
@@ -59,10 +67,6 @@ public class HostSupportTest extends VsphereTestBase{
 
     @Test
     public void getHostTest() throws CloudException, InternalException{
-        final HostSupport hs = new HostSupport(vsphereMock);
-        final List<PropertySpec> hostPSpec = hs.getHostPSpec();
-        final List<SelectionSpec> hostSSpec = hs.getHostSSpec();
-
         new NonStrictExpectations(HostSupport.class) {
             {hs.retrieveObjectList(vsphereMock, "hostFolder", hostSSpec, hostPSpec);
                 result = hosts;
@@ -80,10 +84,6 @@ public class HostSupportTest extends VsphereTestBase{
 
     @Test
     public void getFakeHostTest() throws CloudException, InternalException{
-        final HostSupport hs = new HostSupport(vsphereMock);
-        final List<PropertySpec> hostPSpec = hs.getHostPSpec();
-        final List<SelectionSpec> hostSSpec = hs.getHostSSpec();
-
         new NonStrictExpectations(HostSupport.class) {
             {hs.retrieveObjectList(vsphereMock, "hostFolder", hostSSpec, hostPSpec);
                 result = hosts;

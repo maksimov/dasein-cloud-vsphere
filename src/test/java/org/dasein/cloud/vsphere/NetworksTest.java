@@ -9,6 +9,7 @@ import org.dasein.cloud.network.VLAN;
 import org.dasein.cloud.network.VLANState;
 import org.dasein.cloud.vsphere.compute.HostSupport;
 import org.dasein.cloud.vsphere.network.VSphereNetwork;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
@@ -23,12 +24,18 @@ import static org.junit.Assert.*;
 public class NetworksTest extends VsphereTestBase {
     private ObjectManagement om = new ObjectManagement();
     private final RetrieveResult networks = om.readJsonFile("src/test/resources/Networks/networks.json", RetrieveResult.class);
+    private VSphereNetwork network = null;
+    private List<PropertySpec> networkPSpec = null;
+
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+        network = new VSphereNetwork(vsphereMock);
+        networkPSpec = network.getNetworkPSpec();
+    }
 
     @Test
     public void listNetworksTest() throws CloudException, InternalException {
-        final VSphereNetwork network = new VSphereNetwork(vsphereMock);
-        final List<PropertySpec> networkPSpec = network.getNetworkPSpec();
-
         new NonStrictExpectations(VSphereNetwork.class) {
             {network.retrieveObjectList(vsphereMock, "networkFolder", null, networkPSpec);
                 result = networks;
@@ -55,9 +62,6 @@ public class NetworksTest extends VsphereTestBase {
 
     @Test
     public void getNetworkTest() throws CloudException, InternalException{
-        final VSphereNetwork network = new VSphereNetwork(vsphereMock);
-        final List<PropertySpec> networkPSpec = network.getNetworkPSpec();
-
         new NonStrictExpectations(VSphereNetwork.class) {
             {network.retrieveObjectList(vsphereMock, "networkFolder", null, networkPSpec);
                 result = networks;
@@ -77,9 +81,6 @@ public class NetworksTest extends VsphereTestBase {
 
     @Test
     public void getFakeNetworkTest() throws CloudException, InternalException{
-        final VSphereNetwork network = new VSphereNetwork(vsphereMock);
-        final List<PropertySpec> networkPSpec = network.getNetworkPSpec();
-
         new NonStrictExpectations(VSphereNetwork.class) {
             {network.retrieveObjectList(vsphereMock, "networkFolder", null, networkPSpec);
                 result = networks;
