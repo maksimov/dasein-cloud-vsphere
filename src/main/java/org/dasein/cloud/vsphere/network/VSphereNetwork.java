@@ -4,16 +4,24 @@ import com.vmware.vim25.*;
 import org.apache.log4j.Logger;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
+import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.VisibleScope;
+import org.dasein.cloud.compute.AffinityGroup;
 import org.dasein.cloud.network.*;
 import org.dasein.cloud.util.APITrace;
+import org.dasein.cloud.util.Cache;
+import org.dasein.cloud.util.CacheLevel;
+import org.dasein.cloud.vsphere.NoContextException;
 import org.dasein.cloud.vsphere.ObjectManagement;
 import org.dasein.cloud.vsphere.Vsphere;
 import org.dasein.cloud.vsphere.VsphereInventoryNavigation;
+import org.dasein.util.uom.time.Day;
+import org.dasein.util.uom.time.TimePeriod;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 
@@ -87,6 +95,17 @@ public class VSphereNetwork extends AbstractVLANSupport {
     public Iterable<VLAN> listVlans() throws CloudException, InternalException {
         APITrace.begin(provider, "VSphereNetwork.listVlans");
         try {
+            ProviderContext ctx = provider.getContext();
+            if( ctx == null ) {
+                throw new NoContextException();
+            }
+            Cache<VLAN> cache = Cache.getInstance(provider, "networks", VLAN.class, CacheLevel.REGION_ACCOUNT, new TimePeriod<Day>(1, TimePeriod.DAY));
+            Collection<VLAN> netList = (Collection<VLAN>)cache.get(ctx);
+
+            if( netList != null ) {
+                return netList;
+            }
+
             List<VLAN> list = new ArrayList<VLAN>();
             List<PropertySpec> pSpecs = getNetworkPSpec();
 
@@ -121,6 +140,7 @@ public class VSphereNetwork extends AbstractVLANSupport {
                     }
                 }
             }
+            cache.put(ctx, list);
             return list;
         }
         finally {

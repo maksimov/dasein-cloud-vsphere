@@ -247,9 +247,11 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
                                 status = mes.value();
                             }
                         }
-                        DataCenter dc = toDataCenter(mr.getValue(), dcnm, providerRegionId, status);
-                        if ( dc != null ) {
-                            dataCenters.add(dc);
+                        if (dcnm != null && status != null) {
+                            DataCenter dc = toDataCenter(mr.getValue(), dcnm, providerRegionId, status);
+                            if (dc != null) {
+                                dataCenters.add(dc);
+                            }
                         }
                     }
                 }
@@ -301,8 +303,10 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
                      for (DynamicProperty dp : dps) {
                          dcnm = (String) dp.getVal();
                          Region region = toRegion(mr.getValue(), dcnm);
-                         if ( region != null ) {
-                             regions.add(region);
+                         if (dcnm != null) {
+                             if ( region != null ) {
+                                 regions.add(region);
+                             }
                          }
                      }
                   }
@@ -326,11 +330,6 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     public Iterable<ResourcePool> listResourcePools(String providerDataCenterId) throws InternalException, CloudException {
         APITrace.begin(provider, "listResourcePools");
         try {
-            ProviderContext ctx = provider.getContext();
-
-            if( ctx == null ) {
-                throw new NoContextException();
-            }
             List<ResourcePool> resourcePools = new ArrayList<ResourcePool>();
 
             List<SelectionSpec> selectionSpecsArr = getResourcePoolSelectionSpec();

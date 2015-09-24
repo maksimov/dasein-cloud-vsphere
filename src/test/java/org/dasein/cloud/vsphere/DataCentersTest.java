@@ -51,6 +51,11 @@ public class DataCentersTest extends VsphereTestBase{
     private List<PropertySpec> vfPSpecs = null;
     private List<PropertySpec> props = null;
 
+    private Cache<Region> regCache = null;
+    private Cache<DataCenter> dcCache = null;
+    private Cache<StoragePool> spCache = null;
+    private Cache<Folder> vfCache = null;
+
     @Mocked
     VsphereCompute vsphereComputeMock;
     @Mocked
@@ -68,13 +73,10 @@ public class DataCentersTest extends VsphereTestBase{
         spPSpecs = dc.getStoragePoolPropertySpec();
         vfPSpecs = dc.getVmFolderPropertySpec();
 
-        props = new ArrayList<PropertySpec>();
-        PropertySpec propertySpec = new PropertySpec();
-        propertySpec.setAll(Boolean.FALSE);
-        propertySpec.setType("DataCenter");
-        propertySpec.getPathSet().add("name");
-        propertySpec.getPathSet().add("config");
-        props.add(propertySpec);
+        regCache = Cache.getInstance(vsphereMock, "regions", Region.class, CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(10, TimePeriod.HOUR));
+        dcCache = Cache.getInstance(vsphereMock, "dataCenters", DataCenter.class, CacheLevel.REGION_ACCOUNT, new TimePeriod<Day>(1, TimePeriod.DAY));
+        spCache = Cache.getInstance(vsphereMock, "storagePools", StoragePool.class, CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(10, TimePeriod.HOUR));
+        vfCache = Cache.getInstance(vsphereMock, "folders", Folder.class, CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(10, TimePeriod.HOUR));
 
         new NonStrictExpectations() {
             { vsphereMock.getComputeServices();
@@ -90,9 +92,8 @@ public class DataCentersTest extends VsphereTestBase{
     }
 
     @Test
-    public void listRegionsTest() throws CloudException, InternalException {
-        Cache<Region> cache = Cache.getInstance(vsphereMock, "regions", Region.class, CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(10, TimePeriod.HOUR));
-        cache.clear(); //make sure cache is empty before we begin
+    public void listRegions() throws CloudException, InternalException {
+        regCache.clear(); //make sure cache is empty before we begin
 
         new Expectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
@@ -102,11 +103,11 @@ public class DataCentersTest extends VsphereTestBase{
         };
 
         Iterable<Region> regions = dc.listRegions();
-        assertNotNull(regions);
-        assertTrue(regions.iterator().hasNext());
+        assertNotNull("Null object returned for listRegions", regions);
+        assertTrue("Empty region list returned", regions.iterator().hasNext());
         Region region = regions.iterator().next();
-        assertEquals(region.getName(), "WTC");
-        assertEquals(region.getProviderRegionId(), "datacenter-21");
+        assertEquals("WTC", region.getName());
+        assertEquals("datacenter-21", region.getProviderRegionId());
 
         int count = 0;
         for (Region r : regions) {
@@ -116,7 +117,7 @@ public class DataCentersTest extends VsphereTestBase{
     }
 
     @Test
-    public void getRegionTest() throws CloudException, InternalException{
+    public void getRegion() throws CloudException, InternalException{
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
                 result = regions;
@@ -124,13 +125,13 @@ public class DataCentersTest extends VsphereTestBase{
         };
 
         Region region = dc.getRegion("datacenter-21");
-        assertNotNull(region);
-        assertEquals(region.getName(), "WTC");
-        assertEquals(region.getProviderRegionId(), "datacenter-21");
+        assertNotNull("Null object returned for getRegion", region);
+        assertEquals("WTC", region.getName());
+        assertEquals("datacenter-21", region.getProviderRegionId());
     }
 
     @Test
-    public void getFakeRegionTest() throws CloudException, InternalException{
+    public void getFakeRegionShouldReturnNull() throws CloudException, InternalException{
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
                 result = regions;
@@ -142,9 +143,8 @@ public class DataCentersTest extends VsphereTestBase{
     }
 
     @Test
-    public void listShouldNotCallCloudWhenRegionCacheIsValid() throws CloudException, InternalException {
-        Cache<Region> cache = Cache.getInstance(vsphereMock, "regions", Region.class, CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(10, TimePeriod.HOUR));
-        cache.clear(); //make sure cache is empty before we begin
+    public void listRegionsShouldNotCallCloudIfRegionCacheIsValid() throws CloudException, InternalException {
+        regCache.clear(); //make sure cache is empty before we begin
 
         new Expectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
@@ -155,11 +155,29 @@ public class DataCentersTest extends VsphereTestBase{
 
         dc.listRegions();
         dc.listRegions();
-        cache.clear(); //make sure cache is empty when we finish
     }
 
     @Test
-    public void listRegionsShouldReturnEmptyListIfCloudReturnsNothing() throws CloudException, InternalException {
+    public void listRegionsShouldReturnEmptyListIfCloudReturnsNullObject() throws CloudException, InternalException {
+        regCache.clear();
+
+        new Expectations(DataCenters.class) {
+            {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
+                result = null;
+                times=1;
+            }
+        };
+
+        Iterable<Region> regions = dc.listRegions();
+        assertNotNull("Null object not allowed for listRegions, return empty list instead", regions);
+        assertFalse("Cloud returned null but region list is not empty", regions.iterator().hasNext());
+        regCache.clear(); //make sure cache is empty when we finish
+    }
+
+    @Test
+    public void listRegionsShouldReturnEmptyListIfCloudReturnsEmptyObject() throws CloudException, InternalException {
+        regCache.clear();
+
         new Expectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
                 result = new RetrieveResult();
@@ -168,14 +186,34 @@ public class DataCentersTest extends VsphereTestBase{
         };
 
         Iterable<Region> regions = dc.listRegions();
-        assertNotNull(regions);
+        assertNotNull("Null object not allowed for listRegions, return empty list instead", regions);
         assertFalse("Cloud returned empty list but region list is not empty", regions.iterator().hasNext());
-        Cache<Region> cache = Cache.getInstance(vsphereMock, "regions", Region.class, CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(10, TimePeriod.HOUR));
-        cache.clear(); //make sure cache is empty when we finish
+        regCache.clear(); //make sure cache is empty when we finish
+    }
+
+    @Test
+    public void listRegionsShouldReturnEmptyListIfCloudReturnsEmptyPropertyList() throws CloudException, InternalException {
+        regCache.clear();
+
+        new Expectations(DataCenters.class) {
+            {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
+                RetrieveResult rr = new RetrieveResult();
+                ObjectContent oc = new ObjectContent();
+                oc.setObj(new ManagedObjectReference());
+                rr.getObjects().add(oc);
+                result = rr;
+                times=1;
+            }
+        };
+
+        Iterable<Region> regions = dc.listRegions();
+        assertNotNull("Null object not allowed for listRegions, return empty list instead", regions);
+        assertFalse("Cloud returned empty property list but region list is not empty", regions.iterator().hasNext());
+        regCache.clear(); //make sure cache is empty when we finish
     }
 
     @Test(expected = NoContextException.class)
-    public void nullContextShouldThrowException() throws CloudException, InternalException {
+    public void listRegionsShouldThrowExceptionIfNullContext() throws CloudException, InternalException {
         new Expectations(DataCenters.class) {
             { vsphereMock.getContext(); result = null; }
         };
@@ -184,7 +222,15 @@ public class DataCentersTest extends VsphereTestBase{
     }
 
     @Test(expected = InternalException.class)
-    public void invalidListRegionsRequestShouldThrowException() throws CloudException, InternalException {
+    public void invalidPropertyPathInListRegionsRequestShouldThrowException() throws CloudException, InternalException {
+        props = new ArrayList<PropertySpec>();
+        PropertySpec propertySpec = new PropertySpec();
+        propertySpec.setAll(Boolean.FALSE);
+        propertySpec.setType("Datacenter");
+        propertySpec.getPathSet().add("name");
+        propertySpec.getPathSet().add("config");  //not a property for a Datacenter object
+        props.add(propertySpec);
+
         new Expectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, props);
                 result = new InternalException("Invalid Property config for Datacenter", new InvalidPropertyFaultMsg("Invalid Property config for Datacenter", new InvalidProperty()));
@@ -194,28 +240,9 @@ public class DataCentersTest extends VsphereTestBase{
         dc.retrieveObjectList(vsphereMock, "hostFolder", null, props);
     }
 
-    @Test(expected = NullPointerException.class)
-    public void nullPropertySpecInRequestShouldThrowException() throws CloudException, InternalException {
-        dc.retrieveObjectList(vsphereMock, "hostFolder", new ArrayList<SelectionSpec>(), null);
-    }
-
-    @Test(expected = CloudException.class)
-    public void emptyPropertySpecInRequestShouldThrowException() throws CloudException, InternalException {
-        props = new ArrayList<PropertySpec>();
-
-        new Expectations(DataCenters.class) {
-            {dc.retrieveObjectList(vsphereMock, "hostFolder", null, props);
-                result = new CloudException();
-            };
-        };
-
-        dc.retrieveObjectList(vsphereMock, "hostFolder", null, props);
-    }
-
     @Test
-    public void listDataCentersTest() throws CloudException, InternalException{
-        Cache<DataCenter> dCache = Cache.getInstance(vsphereMock, "dataCenters", DataCenter.class, CacheLevel.REGION_ACCOUNT, new TimePeriod<Day>(1, TimePeriod.DAY));
-        dCache.clear(); //make sure cache is empty before we begin
+    public void listDataCenters() throws CloudException, InternalException{
+        dcCache.clear(); //make sure cache is empty before we begin
 
         new Expectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
@@ -232,10 +259,10 @@ public class DataCentersTest extends VsphereTestBase{
         assertNotNull(dcs);
         assertTrue(dcs.iterator().hasNext());
         DataCenter dataCenter = dcs.iterator().next();
-        assertEquals(dataCenter.getName(), "WTC-Dev-1");
-        assertEquals(dataCenter.getProviderDataCenterId(), "domain-c26");
-        assertEquals(dataCenter.isActive(), true);
-        assertEquals(dataCenter.isAvailable(), true);
+        assertEquals("WTC-Dev-1", dataCenter.getName());
+        assertEquals("domain-c26", dataCenter.getProviderDataCenterId());
+        assertEquals(true, dataCenter.isActive());
+        assertEquals(true, dataCenter.isAvailable());
 
         int count = 0;
         for (DataCenter center : dcs) {
@@ -245,7 +272,7 @@ public class DataCentersTest extends VsphereTestBase{
     }
 
     @Test
-    public void getDataCenterTest() throws CloudException, InternalException{
+    public void getDataCenter() throws CloudException, InternalException{
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
                 result = regions;
@@ -255,14 +282,14 @@ public class DataCentersTest extends VsphereTestBase{
             }
         };
 
-        DataCenter dataCenter = dc.getDataCenter("domain-c26");
+        DataCenter dataCenter = dc.getDataCenter("domain-c70");
         assertNotNull(dataCenter);
-        assertEquals(dataCenter.getName(), "WTC-Dev-1");
-        assertEquals(dataCenter.getProviderDataCenterId(), "domain-c26");
+        assertEquals("WTC-Dev-2", dataCenter.getName());
+        assertEquals("domain-c70", dataCenter.getProviderDataCenterId());
     }
 
     @Test
-    public void getFakeDataCenterTest() throws CloudException, InternalException{
+    public void getFakeDataCenterShouldReturnNull() throws CloudException, InternalException{
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
                 result = regions;
@@ -277,9 +304,8 @@ public class DataCentersTest extends VsphereTestBase{
     }
 
     @Test
-    public void listShouldNotCallCloudWhenDataCenterCacheIsValid() throws CloudException, InternalException {
-        Cache<DataCenter> cache = Cache.getInstance(vsphereMock, "dataCenters", DataCenter.class, CacheLevel.REGION_ACCOUNT, new TimePeriod<Day>(1, TimePeriod.DAY));
-        cache.clear(); //make sure cache is empty before we begin
+    public void listDataCentersShouldNotCallCloudIfDataCenterCacheIsValid() throws CloudException, InternalException {
+        dcCache.clear(); //make sure cache is empty before we begin
 
         new Expectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
@@ -294,18 +320,92 @@ public class DataCentersTest extends VsphereTestBase{
 
         dc.listDataCenters("datacenter-21");
         dc.listDataCenters("datacenter-21");
-        cache.clear();
     }
 
     @Test(expected = CloudException.class)
-    public void listDatacentersShouldThrowExceptionIfRegionNotValid() throws CloudException, InternalException {
+    public void listDataCentersShouldThrowExceptionIfRegionNotValid() throws CloudException, InternalException {
         dc.listDataCenters("MyFakeRegionId");
     }
 
     @Test
-    public void listDataCentersShouldReturnDummyDCIfCloudReturnsNothing() throws CloudException, InternalException{
-        Cache<DataCenter> cache = Cache.getInstance(vsphereMock, "dataCenters", DataCenter.class, CacheLevel.REGION_ACCOUNT, new TimePeriod<Day>(1, TimePeriod.DAY));
-        cache.clear(); //make sure cache is empty before we begin
+    public void listDataCentersShouldReturnDummyDCIfCloudReturnsEmptyPropertyList() throws CloudException, InternalException{
+        dcCache.clear(); //make sure cache is empty before we begin
+
+        new Expectations(DataCenters.class) {
+            {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
+                result = regions;
+                minTimes=0;
+            }
+            {dc.retrieveObjectList(vsphereMock, "hostFolder", null, dcPSpecs);
+                RetrieveResult rr = new RetrieveResult();
+                ObjectContent oc = new ObjectContent();
+                oc.setObj(new ManagedObjectReference());
+                rr.getObjects().add(oc);
+                result = rr;
+                times=1;
+            }
+        };
+
+        Iterable<DataCenter> dcs = dc.listDataCenters("datacenter-21");
+        assertNotNull(dcs);
+        assertTrue(dcs.iterator().hasNext());
+        DataCenter dataCenter = dcs.iterator().next();
+        assertEquals("WTC", dataCenter.getName());
+        assertEquals("datacenter-21-a", dataCenter.getProviderDataCenterId());
+        assertEquals(true, dataCenter.isActive());
+        assertEquals(true, dataCenter.isAvailable());
+
+        int count = 0;
+        for (DataCenter center : dcs) {
+            count++;
+        }
+        assertEquals("Number of datacenters returned is incorrect", 1, count);
+        dcCache.clear();
+    }
+
+    @Test
+    public void listDataCentersShouldReturnDummyDCIfCloudDoesNotReturnNameProperty() throws CloudException, InternalException{
+        dcCache.clear(); //make sure cache is empty before we begin
+
+        new Expectations(DataCenters.class) {
+            {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
+                result = regions;
+                minTimes=0;
+            }
+            {dc.retrieveObjectList(vsphereMock, "hostFolder", null, dcPSpecs);
+                RetrieveResult rr = new RetrieveResult();
+                ObjectContent oc = new ObjectContent();
+                oc.setObj(new ManagedObjectReference());
+                DynamicProperty dp = new DynamicProperty();
+                dp.setVal(ManagedEntityStatus.GREEN);
+                dp.setName("overallStatus");
+                oc.getPropSet().add(dp);
+                rr.getObjects().add(oc);
+                result = rr;
+                times=1;
+            }
+        };
+
+        Iterable<DataCenter> dcs = dc.listDataCenters("datacenter-21");
+        assertNotNull(dcs);
+        assertTrue(dcs.iterator().hasNext());
+        DataCenter dataCenter = dcs.iterator().next();
+        assertEquals("WTC", dataCenter.getName());
+        assertEquals("datacenter-21-a", dataCenter.getProviderDataCenterId());
+        assertEquals(true, dataCenter.isActive());
+        assertEquals(true, dataCenter.isAvailable());
+
+        int count = 0;
+        for (DataCenter center : dcs) {
+            count++;
+        }
+        assertEquals("Number of datacenters returned is incorrect", 1, count);
+        dcCache.clear();
+    }
+
+    @Test
+    public void listDataCentersShouldReturnDummyDCIfCloudReturnsEmptyObject() throws CloudException, InternalException{
+        dcCache.clear(); //make sure cache is empty before we begin
 
         new Expectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
@@ -314,6 +414,7 @@ public class DataCentersTest extends VsphereTestBase{
             }
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, dcPSpecs);
                 result = new RetrieveResult();
+                times=1;
             }
         };
 
@@ -321,21 +422,62 @@ public class DataCentersTest extends VsphereTestBase{
         assertNotNull(dcs);
         assertTrue(dcs.iterator().hasNext());
         DataCenter dataCenter = dcs.iterator().next();
-        assertEquals(dataCenter.getName(), "WTC");
-        assertEquals(dataCenter.getProviderDataCenterId(), "datacenter-21-a");
-        assertEquals(dataCenter.isActive(), true);
-        assertEquals(dataCenter.isAvailable(), true);
+        assertEquals("WTC", dataCenter.getName());
+        assertEquals("datacenter-21-a", dataCenter.getProviderDataCenterId());
+        assertEquals(true, dataCenter.isActive());
+        assertEquals(true, dataCenter.isAvailable());
 
         int count = 0;
         for (DataCenter center : dcs) {
             count++;
         }
         assertEquals("Number of datacenters returned is incorrect", 1, count);
-        cache.clear();
+        dcCache.clear();
     }
 
     @Test
-    public void listResourcePoolsTest() throws CloudException, InternalException{
+    public void listDataCentersShouldReturnDummyDCIfCloudReturnsNullObject() throws CloudException, InternalException{
+        dcCache.clear(); //make sure cache is empty before we begin
+
+        new Expectations(DataCenters.class) {
+            {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
+                result = regions;
+                minTimes=0;
+            }
+            {dc.retrieveObjectList(vsphereMock, "hostFolder", null, dcPSpecs);
+                result = null;
+                times=1;
+            }
+        };
+
+        Iterable<DataCenter> dcs = dc.listDataCenters("datacenter-21");
+        assertNotNull(dcs);
+        assertTrue(dcs.iterator().hasNext());
+        DataCenter dataCenter = dcs.iterator().next();
+        assertEquals("WTC", dataCenter.getName());
+        assertEquals("datacenter-21-a", dataCenter.getProviderDataCenterId());
+        assertEquals(true, dataCenter.isActive());
+        assertEquals(true, dataCenter.isAvailable());
+
+        int count = 0;
+        for (DataCenter center : dcs) {
+            count++;
+        }
+        assertEquals("Number of datacenters returned is incorrect", 1, count);
+        dcCache.clear();
+    }
+
+    @Test(expected = NoContextException.class)
+    public void listDataCentersShouldThrowExceptionIfNullContext() throws CloudException, InternalException {
+        new Expectations(DataCenters.class) {
+            { vsphereMock.getContext(); result = null; }
+        };
+
+        dc.listDataCenters("datacenter-21");
+    }
+
+    @Test
+    public void listResourcePools() throws CloudException, InternalException{
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", rpSSpecs, rpPSpecs);
                 result = resourcePools;
@@ -346,10 +488,10 @@ public class DataCentersTest extends VsphereTestBase{
         assertNotNull(resourcePools);
         assertTrue(resourcePools.iterator().hasNext());
         ResourcePool resourcePool = resourcePools.iterator().next();
-        assertEquals(resourcePool.getName(), "Cluster1-Resource_Pool1");
-        assertEquals(resourcePool.getProvideResourcePoolId(), "resgroup-76");
-        assertEquals(resourcePool.getDataCenterId(), "domain-c26");
-        assertEquals(resourcePool.isAvailable(), true);
+        assertEquals("Cluster1-Resource_Pool1", resourcePool.getName());
+        assertEquals("resgroup-76", resourcePool.getProvideResourcePoolId());
+        assertEquals("domain-c26", resourcePool.getDataCenterId());
+        assertEquals(true, resourcePool.isAvailable());
 
         int count = 0;
         for (ResourcePool r : resourcePools) {
@@ -359,23 +501,23 @@ public class DataCentersTest extends VsphereTestBase{
     }
 
     @Test
-    public void getResourcePoolTest() throws CloudException, InternalException{
+    public void getResourcePool() throws CloudException, InternalException{
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", rpSSpecs, rpPSpecs);
                 result = resourcePools;
             }
         };
 
-        ResourcePool resourcePool = dc.getResourcePool("resgroup-76");
+        ResourcePool resourcePool = dc.getResourcePool("resgroup-78");
         assertNotNull(resourcePool);
-        assertEquals(resourcePool.getName(), "Cluster1-Resource_Pool1");
-        assertEquals(resourcePool.getProvideResourcePoolId(),"resgroup-76");
-        assertEquals(resourcePool.getDataCenterId(), "domain-c26");
-        assertEquals(resourcePool.isAvailable(), true);
+        assertEquals("Cluster2-Resource_Pool1", resourcePool.getName());
+        assertEquals("resgroup-78", resourcePool.getProvideResourcePoolId());
+        assertEquals("domain-c70", resourcePool.getDataCenterId());
+        assertEquals(true, resourcePool.isAvailable());
     }
 
     @Test
-    public void getFakeResourcePoolTest() throws CloudException, InternalException{
+    public void getFakeResourcePoolShouldReturnNull() throws CloudException, InternalException{
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", rpSSpecs, rpPSpecs);
                 result = resourcePools;
@@ -387,13 +529,13 @@ public class DataCentersTest extends VsphereTestBase{
     }
 
     @Test
-    public void listStoragePoolsTest() throws CloudException, InternalException{
-        Cache<StoragePool> cache = Cache.getInstance(vsphereMock, "storagePools", StoragePool.class, CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(10, TimePeriod.HOUR));
-        cache.clear();
+    public void listStoragePools() throws CloudException, InternalException{
+        spCache.clear();
 
-        new NonStrictExpectations(DataCenters.class) {
+        new Expectations(DataCenters.class) {
             { dc.retrieveObjectList(vsphereMock, anyString, spSSpecs, spPSpecs);
                 result = storagePools;
+                times=1;
             }
         };
 
@@ -401,14 +543,14 @@ public class DataCentersTest extends VsphereTestBase{
         assertNotNull(sps);
         assertTrue(sps.iterator().hasNext());
         StoragePool storagePool = sps.iterator().next();
-        assertEquals(storagePool.getStoragePoolName(), "shared-datastore-1");
-        assertEquals(storagePool.getStoragePoolId(), "datastore-37");
-        assertEquals(storagePool.getRegionId(), "datacenter-21");
+        assertEquals("shared-datastore-1", storagePool.getStoragePoolName());
+        assertEquals("datastore-37", storagePool.getStoragePoolId());
+        assertEquals("datacenter-21", storagePool.getRegionId());
         assertNull("Storage pool is shared, datacenter id should be null", storagePool.getDataCenterId());
         assertNull("Storage pool is shared, affinity group id should be null", storagePool.getAffinityGroupId());
-        assertEquals(storagePool.getCapacity().longValue(), 3902537, 1);
-        assertEquals(storagePool.getProvisioned().longValue(), 1885831, 1);
-        assertEquals(storagePool.getFreeSpace().longValue(), 2016706, 1);
+        assertEquals(3902537, storagePool.getCapacity().longValue(), 1);
+        assertEquals(1885831, storagePool.getProvisioned().longValue(), 1);
+        assertEquals(2016706, storagePool.getFreeSpace().longValue(), 1);
 
         int count = 0;
         for (StoragePool sp : sps) {
@@ -418,7 +560,7 @@ public class DataCentersTest extends VsphereTestBase{
     }
 
     @Test
-    public void getStoragePoolTest() throws CloudException, InternalException{
+    public void getStoragePool() throws CloudException, InternalException{
         new NonStrictExpectations(DataCenters.class) {
             { dc.retrieveObjectList(vsphereMock, anyString, spSSpecs, spPSpecs);
                 result = storagePools;
@@ -426,18 +568,18 @@ public class DataCentersTest extends VsphereTestBase{
         };
 
         StoragePool storagePool = dc.getStoragePool("datastore-44");
-        assertEquals(storagePool.getStoragePoolName(), "local-storage-1 (1)");
-        assertEquals(storagePool.getStoragePoolId(), "datastore-44");
-        assertEquals(storagePool.getRegionId(), "datacenter-21");
-        assertEquals(storagePool.getDataCenterId(), "domain-c26");
-        assertEquals(storagePool.getAffinityGroupId(), "host-43");
-        assertEquals(storagePool.getCapacity().longValue(), 285212, 1);
-        assertEquals(storagePool.getProvisioned().longValue(), 996, 1);
-        assertEquals(storagePool.getFreeSpace().longValue(), 284216, 1);
+        assertEquals("local-storage-1 (1)", storagePool.getStoragePoolName());
+        assertEquals("datastore-44", storagePool.getStoragePoolId());
+        assertEquals("datacenter-21", storagePool.getRegionId());
+        assertEquals("domain-c26", storagePool.getDataCenterId());
+        assertEquals("host-43", storagePool.getAffinityGroupId());
+        assertEquals(285212, storagePool.getCapacity().longValue(), 1);
+        assertEquals(996, storagePool.getProvisioned().longValue(), 1);
+        assertEquals(284216, storagePool.getFreeSpace().longValue(), 1);
     }
 
     @Test
-    public void getFakeStoragePoolTest() throws CloudException, InternalException{
+    public void getFakeStoragePoolShouldReturnNull() throws CloudException, InternalException{
         new NonStrictExpectations(DataCenters.class) {
             { dc.retrieveObjectList(vsphereMock, anyString, spSSpecs, spPSpecs);
                 result = storagePools;
@@ -449,9 +591,8 @@ public class DataCentersTest extends VsphereTestBase{
     }
 
     @Test
-    public void listShouldNotCallCloudWhenStoragePoolCacheIsValid() throws CloudException, InternalException {
-        Cache<StoragePool> cache = Cache.getInstance(vsphereMock, "storagePools", StoragePool.class, CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(10, TimePeriod.HOUR));
-        cache.clear();
+    public void listStoragePoolsShouldNotCallCloudIfStoragePoolCacheIsValid() throws CloudException, InternalException {
+        spCache.clear();
 
         new Expectations(DataCenters.class) {
             { dc.retrieveObjectList(vsphereMock, anyString, spSSpecs, spPSpecs);
@@ -462,17 +603,17 @@ public class DataCentersTest extends VsphereTestBase{
 
         dc.listStoragePools();
         dc.listStoragePools();
-        cache.clear();
+        spCache.clear();
     }
 
     @Test
-    public void listVmFoldersTest() throws CloudException, InternalException{
-        Cache<Folder> cache = Cache.getInstance(vsphereMock, "folders", Folder.class, CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(10, TimePeriod.HOUR));
-        cache.clear();
+    public void listVmFolders() throws CloudException, InternalException{
+        vfCache.clear();
 
-        new NonStrictExpectations(DataCenters.class) {
+        new Expectations(DataCenters.class) {
             { dc.retrieveObjectList(vsphereMock, anyString, null, vfPSpecs);
                 result = vmFolders;
+                times=1;
             }
         };
 
@@ -480,9 +621,9 @@ public class DataCentersTest extends VsphereTestBase{
         assertNotNull(folders);
         assertTrue(folders.iterator().hasNext());
         Folder folder = folders.iterator().next();
-        assertEquals(folder.getName(), "Folder1");
-        assertEquals(folder.getId(), "group-d80");
-        assertEquals(folder.getType(), FolderType.VM);
+        assertEquals("Folder1", folder.getName());
+        assertEquals("group-d80", folder.getId());
+        assertEquals(FolderType.VM, folder.getType());
         assertNull("Parent folder should be null", folder.getParent());
         assertNotNull("Children should not be null, return empty list instead", folder.getChildren());
 
@@ -494,7 +635,7 @@ public class DataCentersTest extends VsphereTestBase{
     }
 
     @Test
-    public void getVmFolderTest() throws CloudException, InternalException{
+    public void getVmFolder() throws CloudException, InternalException{
         new NonStrictExpectations(DataCenters.class) {
             { dc.retrieveObjectList(vsphereMock, anyString, null, vfPSpecs);
                 result = vmFolders;
@@ -502,16 +643,16 @@ public class DataCentersTest extends VsphereTestBase{
         };
 
         Folder folder = dc.getVMFolder("group-v81");
-        assertEquals(folder.getName(), "VM Folder1");
-        assertEquals(folder.getId(), "group-v81");
-        assertEquals(folder.getType(), FolderType.VM);
-        assertEquals(folder.getParent().getName(), "vm");
-        assertEquals(folder.getChildren().size(), 1);
-        assertEquals(folder.getChildren().get(0).getName(), "DMNestedFolder");
+        assertEquals("VM Folder1", folder.getName());
+        assertEquals("group-v81", folder.getId());
+        assertEquals(FolderType.VM, folder.getType());
+        assertEquals("vm", folder.getParent().getName());
+        assertEquals(1, folder.getChildren().size());
+        assertEquals("DMNestedFolder", folder.getChildren().get(0).getName());
     }
 
     @Test
-    public void getFakeVmFolderTest() throws CloudException, InternalException{
+    public void getFakeVmFolderShouldReturnNull() throws CloudException, InternalException{
         new NonStrictExpectations(DataCenters.class) {
             { dc.retrieveObjectList(vsphereMock, anyString, null, vfPSpecs);
                 result = vmFolders;
@@ -523,9 +664,8 @@ public class DataCentersTest extends VsphereTestBase{
     }
 
     @Test
-    public void listShouldNotCallCloudWhenVmFolderCacheIsValid() throws CloudException, InternalException {
-        Cache<Folder> cache = Cache.getInstance(vsphereMock, "folders", Folder.class, CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(10, TimePeriod.HOUR));
-        cache.clear();
+    public void listVMFoldersShouldNotCallCloudIfVmFolderCacheIsValid() throws CloudException, InternalException {
+        vfCache.clear();
 
         new Expectations(DataCenters.class) {
             {
@@ -537,6 +677,6 @@ public class DataCentersTest extends VsphereTestBase{
 
         dc.listVMFolders();
         dc.listVMFolders();
-        cache.clear();
+        vfCache.clear();
     }
 }
