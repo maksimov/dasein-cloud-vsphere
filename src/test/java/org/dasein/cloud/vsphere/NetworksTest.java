@@ -2,16 +2,13 @@ package org.dasein.cloud.vsphere;
 
 import com.vmware.vim25.PropertySpec;
 import com.vmware.vim25.RetrieveResult;
-
 import mockit.NonStrictExpectations;
-
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.network.VLAN;
 import org.dasein.cloud.network.VLANState;
 import org.dasein.cloud.vsphere.compute.HostSupport;
 import org.dasein.cloud.vsphere.network.VSphereNetwork;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
@@ -26,12 +23,10 @@ import static org.junit.Assert.*;
 public class NetworksTest extends VsphereTestBase {
     private ObjectManagement om = new ObjectManagement();
     private final RetrieveResult networks = om.readJsonFile("src/test/resources/Networks/networks.json", RetrieveResult.class);
-    private VSphereNetwork network = null;
 
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
-        network = new VSphereNetwork(vsphereMock);
+    @Test
+    public void listNetworksTest() throws CloudException, InternalException {
+        final VSphereNetwork network = new VSphereNetwork(vsphereMock);
         final List<PropertySpec> networkPSpec = network.getNetworkPSpec();
 
         new NonStrictExpectations(VSphereNetwork.class) {
@@ -39,10 +34,7 @@ public class NetworksTest extends VsphereTestBase {
                 result = networks;
             }
         };
-    }
 
-    @Test
-    public void listNetworksTest() throws CloudException, InternalException {
         Iterable<VLAN> vlans = network.listVlans();
         assertNotNull(vlans);
         assertTrue(vlans.iterator().hasNext());
@@ -63,6 +55,15 @@ public class NetworksTest extends VsphereTestBase {
 
     @Test
     public void getNetworkTest() throws CloudException, InternalException{
+        final VSphereNetwork network = new VSphereNetwork(vsphereMock);
+        final List<PropertySpec> networkPSpec = network.getNetworkPSpec();
+
+        new NonStrictExpectations(VSphereNetwork.class) {
+            {network.retrieveObjectList(vsphereMock, "networkFolder", null, networkPSpec);
+                result = networks;
+            }
+        };
+
         VLAN vlan = network.getVlan("dvportgroup-56");
         assertEquals(vlan.getProviderVlanId(), "dvportgroup-56");
         assertEquals(vlan.getName(), "VM Network");
@@ -76,6 +77,15 @@ public class NetworksTest extends VsphereTestBase {
 
     @Test
     public void getFakeNetworkTest() throws CloudException, InternalException{
+        final VSphereNetwork network = new VSphereNetwork(vsphereMock);
+        final List<PropertySpec> networkPSpec = network.getNetworkPSpec();
+
+        new NonStrictExpectations(VSphereNetwork.class) {
+            {network.retrieveObjectList(vsphereMock, "networkFolder", null, networkPSpec);
+                result = networks;
+            }
+        };
+
         VLAN vlan = network.getVlan("MyFakeNetwork");
         assertTrue("Vlan returned but id was made up", vlan == null);
     }
