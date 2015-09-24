@@ -42,8 +42,6 @@ import org.dasein.util.uom.time.TimePeriod;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
 /**
@@ -269,8 +267,6 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             APITrace.end();
         }
     }
-    private static final String VIMSERVICEINSTANCETYPE = "ServiceInstance";
-    private static final String VIMSERVICEINSTANCEVALUE = "ServiceInstance";
     
     @Override
     public Collection<Region> listRegions() throws InternalException, CloudException {
@@ -315,13 +311,10 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             cache.put(ctx, regions);
             return regions;
 
-        } catch (Exception e) {
-            System.out.println(e);
         }
         finally {
             APITrace.end();
         }
-        return null;
     }
 
     @Override
@@ -338,13 +331,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             if( ctx == null ) {
                 throw new NoContextException();
             }
-            Cache<ResourcePool> cache = Cache.getInstance(provider, "resourcePools", ResourcePool.class, CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(10, TimePeriod.HOUR));
-            Collection<ResourcePool> resourcePools = (Collection<ResourcePool>)cache.get(ctx);
-
-            if( resourcePools != null ) {
-                return resourcePools;
-            }
-            resourcePools = new ArrayList<ResourcePool>();
+            List<ResourcePool> resourcePools = new ArrayList<ResourcePool>();
 
             List<SelectionSpec> selectionSpecsArr = getResourcePoolSelectionSpec();
             List<PropertySpec> pSpecs = getResourcePoolPropertySpec();
@@ -378,16 +365,11 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
                     }
                 }
             }
-            cache.put(ctx, resourcePools);
             return resourcePools;
-
-        } catch (Exception e) {
-            System.out.println(e);
         }
         finally {
             APITrace.end();
         }
-        return null;
     }
 
     @Override
@@ -489,14 +471,10 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             }
             cache.put(ctx, storagePools);
             return storagePools;
-
-        } catch (Exception e) {
-            System.out.println(e);
         }
         finally {
             APITrace.end();
         }
-        return null;
     }
 
     @Override
@@ -596,14 +574,10 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             }
             cache.put(ctx, folders);
             return folders;
-
-        } catch (Exception e) {
-            System.out.println(e);
         }
         finally {
             APITrace.end();
         }
-        return null;
     }
 
     @Override
