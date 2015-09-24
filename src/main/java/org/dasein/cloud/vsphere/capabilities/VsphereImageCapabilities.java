@@ -27,7 +27,9 @@ import org.dasein.cloud.vsphere.Vsphere;
 
 import javax.annotation.Nonnull;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -44,50 +46,47 @@ public class VsphereImageCapabilities extends AbstractCapabilities<Vsphere> impl
 
     @Override
     public boolean canBundle(VmState fromState) throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return false;
+        return true;
     }
 
     @Override
     public boolean canImage(VmState fromState) throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return false;
+        return true;
     }
 
     @Override
     public String getProviderTermForImage(Locale locale, ImageClass cls) {
-        // TODO Auto-generated method stub
-        return null;
+        return "template";
     }
 
     @Override
     public String getProviderTermForCustomImage(Locale locale, ImageClass cls) {
-        // TODO Auto-generated method stub
-        return null;
+        return "snapshot";
     }
 
     @Override
     public VisibleScope getImageVisibleScope() {
-        // TODO Auto-generated method stub
-        return null;
+        return VisibleScope.ACCOUNT_DATACENTER;
     }
 
     @Override
     public Requirement identifyLocalBundlingRequirement() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return null;
+        // totall guess here...
+        return Requirement.REQUIRED;
     }
 
     @Override
     public Iterable<MachineImageFormat> listSupportedFormats() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return null;
+        List<MachineImageFormat> supportedFormats = new ArrayList<MachineImageFormat>();
+        supportedFormats.add(MachineImageFormat.VMDK);
+        return supportedFormats;
     }
 
     @Override
     public Iterable<MachineImageFormat> listSupportedFormatsForBundling() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return null;
+        List<MachineImageFormat> supportedFormats = new ArrayList<MachineImageFormat>();
+        supportedFormats.add(MachineImageFormat.VMDK);
+        return supportedFormats;
     }
 
     @Override
@@ -108,56 +107,47 @@ public class VsphereImageCapabilities extends AbstractCapabilities<Vsphere> impl
 
     @Override
     public boolean supportsImageCapture(MachineImageType type) throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return false;
+        return true;
     }
 
     @Override
     public boolean supportsImageCopy() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return false;
+        return true;
     }
 
     @Override
     public boolean supportsImageRemoval() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return false;
+        return true;
     }
 
     @Override
     public boolean supportsImageSharing() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean supportsImageSharingWithPublic() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean supportsListingAllRegions() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return false;
+        return true;
     }
 
     @Override
     public boolean supportsPublicLibrary(ImageClass cls) throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return false;
+        return true;
     }
 
     @Override
     public boolean imageCaptureDestroysVM() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public NamingConstraints getImageNamingConstraints() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return null;
+        return NamingConstraints.getAlphaNumeric(1, 80).withRegularExpression(".{1,80}");
     }
 
 }

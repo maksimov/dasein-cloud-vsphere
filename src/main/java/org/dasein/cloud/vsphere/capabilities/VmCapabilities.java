@@ -8,6 +8,7 @@ import java.util.Locale;
 import javax.annotation.Nonnull;
 
 import org.dasein.cloud.AbstractCapabilities;
+import org.dasein.cloud.Capabilities;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.Requirement;
@@ -35,31 +36,29 @@ public class VmCapabilities extends AbstractCapabilities<Vsphere> implements Vir
 
     @Override
     public boolean canClone(VmState fromState) throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return false;
+        return true;
     }
 
     @Override
     public boolean canPause(VmState fromState) throws CloudException, InternalException {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean canReboot(VmState fromState) throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return false;
+        return true;
     }
 
     @Override
     public boolean canResume(VmState fromState) throws CloudException, InternalException {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean canStart(VmState fromState) throws CloudException, InternalException {
-        // TODO Auto-generated method stub
+        if (VmState.STOPPED == fromState) {
+            return true;
+        }
         return false;
     }
 
@@ -71,26 +70,28 @@ public class VmCapabilities extends AbstractCapabilities<Vsphere> implements Vir
 
     @Override
     public boolean canSuspend(VmState fromState) throws CloudException, InternalException {
-        // TODO Auto-generated method stub
+        if (VmState.RUNNING == fromState) {
+            return true;
+        }
         return false;
     }
 
     @Override
     public boolean canTerminate(VmState fromState) throws CloudException, InternalException {
-        // TODO Auto-generated method stub
+        if (VmState.STOPPED == fromState) {
+            return true;
+        }
         return false;
     }
 
     @Override
     public boolean canUnpause(VmState fromState) throws CloudException, InternalException {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public int getMaximumVirtualMachineCount() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return 0;
+        return Capabilities.LIMIT_UNKNOWN;
     }
 
     @Override
@@ -101,8 +102,7 @@ public class VmCapabilities extends AbstractCapabilities<Vsphere> implements Vir
 
     @Override
     public String getProviderTermForVirtualMachine(Locale locale) throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return null;
+        return "virtual machine";
     }
 
     @Override
@@ -113,32 +113,28 @@ public class VmCapabilities extends AbstractCapabilities<Vsphere> implements Vir
 
     @Override
     public NamingConstraints getVirtualMachineNamingConstraints() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return null;
+        return NamingConstraints.getAlphaNumeric(1, 80).withRegularExpression(".{1,80}");
     }
 
     @Override
     public VisibleScope getVirtualMachineVisibleScope() {
-        // TODO Auto-generated method stub
-        return null;
+        return VisibleScope.ACCOUNT_REGION;
     }
 
     @Override
     public VisibleScope getVirtualMachineProductVisibleScope() {
-        // TODO Auto-generated method stub
-        return null;
+        return VisibleScope.ACCOUNT_REGION;
     }
 
     @Override
     public Requirement identifyDataCenterLaunchRequirement() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return null;
+        return Requirement.REQUIRED;
     }
 
     @Override
     public Requirement identifyImageRequirement(ImageClass cls) throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return null;
+
+        return Requirement.REQUIRED;
     }
 
     @Override
@@ -155,8 +151,7 @@ public class VmCapabilities extends AbstractCapabilities<Vsphere> implements Vir
 
     @Override
     public Requirement identifyShellKeyRequirement(Platform platform) throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return null;
+        return Requirement.NONE;
     }
 
     @Override
@@ -179,7 +174,6 @@ public class VmCapabilities extends AbstractCapabilities<Vsphere> implements Vir
 
     @Override
     public boolean isAPITerminationPreventable() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
         return false;
     }
 
@@ -217,6 +211,7 @@ public class VmCapabilities extends AbstractCapabilities<Vsphere> implements Vir
         }
         return architectures;
     }
+
     @Override
     public boolean supportsSpotVirtualMachines() throws InternalException, CloudException {
         // TODO Auto-generated method stub
@@ -231,13 +226,11 @@ public class VmCapabilities extends AbstractCapabilities<Vsphere> implements Vir
 
     @Override
     public boolean supportsCloudStoredShellKey() throws InternalException, CloudException {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean isVMProductDCConstrained() throws InternalException, CloudException {
-        // TODO Auto-generated method stub
         return false;
     }
 
@@ -249,55 +242,46 @@ public class VmCapabilities extends AbstractCapabilities<Vsphere> implements Vir
 
     @Override
     public boolean supportsClone() {
-        // TODO Auto-generated method stub
-        return false;
+        return true;
     }
 
     @Override
     public boolean supportsPause() {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean supportsReboot() {
-        // TODO Auto-generated method stub
-        return false;
+        return true;
     }
 
     @Override
     public boolean supportsResume() {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean supportsStart() {
-        // TODO Auto-generated method stub
-        return false;
+        return true;
     }
 
     @Override
     public boolean supportsStop() {
-        // TODO Auto-generated method stub
-        return false;
+        return true;
     }
 
     @Override
     public boolean supportsSuspend() {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean supportsTerminate() {
-        // TODO Auto-generated method stub
-        return false;
+        return true;
     }
 
     @Override
     public boolean supportsUnPause() {
-        // TODO Auto-generated method stub
         return false;
     }
 
