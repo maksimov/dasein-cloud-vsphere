@@ -43,6 +43,7 @@ public class DataCentersTest extends VsphereTestBase{
     private final RetrieveResult storagePools = om.readJsonFile("src/test/resources/DataCenters/storagePools.json", RetrieveResult.class);
     private final AffinityGroup[] daseinHosts = om.readJsonFile("src/test/resources/DataCenters/daseinHosts.json", AffinityGroup[].class);
     private final RetrieveResult vmFolders = om.readJsonFile("src/test/resources/DataCenters/vmFolders.json", RetrieveResult.class);
+
     private DataCenters dc = null;
     private List<PropertySpec> regPSpecs = null;
     private List<PropertySpec> dcPSpecs = null;
