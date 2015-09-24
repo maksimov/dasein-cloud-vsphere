@@ -3,6 +3,7 @@ package org.dasein.cloud.vsphere;
 import mockit.*;
 
 import com.vmware.vim25.*;
+
 import org.codehaus.jackson.map.DeserializationConfig;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.dasein.cloud.CloudException;
@@ -12,12 +13,15 @@ import org.dasein.cloud.compute.AffinityGroupFilterOptions;
 import org.dasein.cloud.compute.AffinityGroupSupport;
 import org.dasein.cloud.dc.*;
 import org.dasein.cloud.vsphere.compute.VsphereCompute;
+import org.dasein.cloud.vsphere.network.VSphereNetwork;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,22 +37,81 @@ import static org.junit.Assert.*;
 public class DataCentersTest extends VsphereTestBase{
 
     private ObjectManagement om = new ObjectManagement();
+    private final RetrieveResult regions = om.readJsonFile("src/test/resources/DataCenters/regions.json", RetrieveResult.class);
+    private final RetrieveResult datacenters = om.readJsonFile("src/test/resources/DataCenters/datacenters.json", RetrieveResult.class);
+    private final RetrieveResult resourcePools = om.readJsonFile("src/test/resources/DataCenters/resourcePools.json", RetrieveResult.class);
+    private final RetrieveResult storagePools = om.readJsonFile("src/test/resources/DataCenters/storagePools.json", RetrieveResult.class);
+    private final AffinityGroup[] daseinHosts = om.readJsonFile("src/test/resources/DataCenters/daseinHosts.json", AffinityGroup[].class);
+    private final RetrieveResult vmFolders = om.readJsonFile("src/test/resources/DataCenters/vmFolders.json", RetrieveResult.class);
+
+    private DataCenters dc = null;
+    private List<PropertySpec> regPSpecs = null;
+    private List<PropertySpec> dcPSpecs = null;
+    private List<SelectionSpec> rpSSpecs = null;
+    private List<PropertySpec> rpPSpecs = null;
+    private List<SelectionSpec> spSSpecs = null;
+    private List<PropertySpec> spPSpecs = null;
+    private List<PropertySpec> vfPSpecs = null;
+    private List<PropertySpec> props = null;
+
     @Mocked
     VsphereCompute vsphereComputeMock;
     @Mocked
     AffinityGroupSupport vsphereAGMock;
 
-    @Test
-    public void listRegionsTest() throws CloudException, InternalException {
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<PropertySpec> regPSpecs = dc.getRegionPropertySpec();
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+        dc = new DataCenters(vsphereMock);
+        regPSpecs = dc.getRegionPropertySpec();
+        dcPSpecs = dc.getDataCenterPropertySpec();
+        rpSSpecs = dc.getResourcePoolSelectionSpec();
+        rpPSpecs = dc.getResourcePoolPropertySpec();
+        spSSpecs = dc.getStoragePoolSelectionSpec();
+        spPSpecs = dc.getStoragePoolPropertySpec();
+        vfPSpecs = dc.getVmFolderPropertySpec();
+
+        props = new ArrayList<PropertySpec>();
+        PropertySpec propertySpec = new PropertySpec();
+        propertySpec.setAll(Boolean.FALSE);
+        propertySpec.setType("DataCenter");
+        propertySpec.getPathSet().add("name");
+        propertySpec.getPathSet().add("config");
+        props.add(propertySpec);
 
         new NonStrictExpectations(DataCenters.class) {
             {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/regions.json", RetrieveResult.class);
+                result = regions;
             }
+            {dc.retrieveObjectList(vsphereMock, "hostFolder", null, dcPSpecs);
+                result = datacenters;
+            }
+            {dc.retrieveObjectList(vsphereMock, "hostFolder", rpSSpecs, rpPSpecs);
+                result = resourcePools;
+            }
+            { dc.retrieveObjectList(vsphereMock, anyString, spSSpecs, spPSpecs);
+                result = storagePools;
+            }
+            { vsphereMock.getComputeServices();
+                result = vsphereComputeMock;
+            }
+            { vsphereComputeMock.getAffinityGroupSupport(); 
+                result = vsphereAGMock;
+            }
+            { vsphereAGMock.list((AffinityGroupFilterOptions) any);
+                result = daseinHosts;
+            }
+            { dc.retrieveObjectList(vsphereMock, anyString, null, vfPSpecs);
+                result = vmFolders;
+            }
+            {dc.retrieveObjectList(vsphereMock, "hostFolder", (List) any, props);
+                result = new InvalidPropertyFaultMsg("error", new InvalidProperty());
+            };
         };
+    }
 
+    @Test
+    public void listRegionsTest() throws CloudException, InternalException {
         Iterable<Region> regions = dc.listRegions();
         assertNotNull(regions);
         assertTrue(regions.iterator().hasNext());
@@ -65,15 +128,6 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void getRegionTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<PropertySpec> regPSpecs = dc.getRegionPropertySpec();
-
-        new NonStrictExpectations(DataCenters.class) {
-            {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/regions.json", RetrieveResult.class);
-            }
-        };
-
         Region region = dc.getRegion("datacenter-21");
         assertNotNull(region);
         assertEquals(region.getName(), "WTC");
@@ -82,60 +136,22 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void getFakeRegionTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<PropertySpec> regPSpecs = dc.getRegionPropertySpec();
-
-        new NonStrictExpectations(DataCenters.class) {
-            {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/regions.json", RetrieveResult.class);
-            }
-        };
-
         Region region = dc.getRegion("myFakeRegion");
         assertTrue("Region returned but id was made up", region == null);
     }
 
     @Test(expected = InvalidPropertyFaultMsg.class)
     public void invalidListRegionsRequestThrowsException() throws CloudException, InternalException {
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<PropertySpec> props = new ArrayList<PropertySpec>();
-        PropertySpec propertySpec = new PropertySpec();
-        propertySpec.setAll(Boolean.FALSE);
-        propertySpec.setType("DataCenter");
-        propertySpec.getPathSet().add("name");
-        propertySpec.getPathSet().add("config");
-        props.add(propertySpec);
-
-        new Expectations(DataCenters.class) {
-            {dc.retrieveObjectList(vsphereMock, "hostFolder", (List) any, props);
-                result = new InvalidPropertyFaultMsg("error", new InvalidProperty());
-            };
-        };
-
         dc.retrieveObjectList(vsphereMock, "hostFolder", null, props);
     }
 
     @Test(expected = NullPointerException.class)
     public void nullBaseFolderInRequestThrowsException() throws CloudException, InternalException {
-        final DataCenters dc = new DataCenters(vsphereMock);
         dc.retrieveObjectList(vsphereMock, null, null, null);
     }
 
     @Test
     public void listDataCentersTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<PropertySpec> regPSpecs = dc.getRegionPropertySpec();
-        final List<PropertySpec> dcPSpecs = dc.getDataCenterPropertySpec();
-
-        new NonStrictExpectations(DataCenters.class) {
-            {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/regions.json", RetrieveResult.class);
-            }
-            {dc.retrieveObjectList(vsphereMock, "hostFolder", null, dcPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/datacenters.json", RetrieveResult.class);
-            }
-        };
-
         Iterable<DataCenter> dcs = dc.listDataCenters("datacenter-21");
         assertNotNull(dcs);
         assertTrue(dcs.iterator().hasNext());
@@ -154,19 +170,6 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void getDataCenterTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<PropertySpec> regPSpecs = dc.getRegionPropertySpec();
-        final List<PropertySpec> dcPSpecs = dc.getDataCenterPropertySpec();
-
-        new NonStrictExpectations(DataCenters.class) {
-            {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/regions.json", RetrieveResult.class);
-            }
-            {dc.retrieveObjectList(vsphereMock, "hostFolder", null, dcPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/datacenters.json", RetrieveResult.class);
-            }
-        };
-
         DataCenter dataCenter = dc.getDataCenter("domain-c26");
         assertNotNull(dataCenter);
         assertEquals(dataCenter.getName(), "WTC-Dev-1");
@@ -175,35 +178,12 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void getFakeDataCenterTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<PropertySpec> regPSpecs = dc.getRegionPropertySpec();
-        final List<PropertySpec> dcPSpecs = dc.getDataCenterPropertySpec();
-
-        new NonStrictExpectations(DataCenters.class) {
-            {dc.retrieveObjectList(vsphereMock, "hostFolder", null, regPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/regions.json", RetrieveResult.class);
-            }
-            {dc.retrieveObjectList(vsphereMock, "hostFolder", null, dcPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/datacenters.json", RetrieveResult.class);
-            }
-        };
-
         DataCenter dataCenter = dc.getDataCenter("myFakeDC");
         assertTrue("DataCenter returned but id was made up", dataCenter == null);
     }
 
     @Test
     public void listResourcePoolsTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<SelectionSpec> rpSSpecs = dc.getResourcePoolSelectionSpec();
-        final List<PropertySpec> rpPSpecs = dc.getResourcePoolPropertySpec();
-
-        new NonStrictExpectations(DataCenters.class) {
-            {dc.retrieveObjectList(vsphereMock, "hostFolder", rpSSpecs, rpPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/resourcePools.json", RetrieveResult.class);
-            }
-        };
-
         Iterable<ResourcePool> resourcePools = dc.listResourcePools("domain-c26");
         assertNotNull(resourcePools);
         assertTrue(resourcePools.iterator().hasNext());
@@ -222,16 +202,6 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void getResourcePoolTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<SelectionSpec> rpSSpecs = dc.getResourcePoolSelectionSpec();
-        final List<PropertySpec> rpPSpecs = dc.getResourcePoolPropertySpec();
-
-        new NonStrictExpectations(DataCenters.class) {
-            {dc.retrieveObjectList(vsphereMock, "hostFolder", rpSSpecs, rpPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/resourcePools.json", RetrieveResult.class);
-            }
-        };
-
         ResourcePool resourcePool = dc.getResourcePool("resgroup-76");
         assertNotNull(resourcePool);
         assertEquals(resourcePool.getName(), "Cluster1-Resource_Pool1");
@@ -242,37 +212,12 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void getFakeResourcePoolTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<SelectionSpec> rpSSpecs = dc.getResourcePoolSelectionSpec();
-        final List<PropertySpec> rpPSpecs = dc.getResourcePoolPropertySpec();
-
-        new NonStrictExpectations(DataCenters.class) {
-            {dc.retrieveObjectList(vsphereMock, "hostFolder", rpSSpecs, rpPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/resourcePools.json", RetrieveResult.class);
-            }
-        };
-
         ResourcePool resourcePool = dc.getResourcePool("myFakeRP");
         assertTrue("ResourcePool returned but id was made up", resourcePool == null);
     }
 
     @Test
     public void listStoragePoolsTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<SelectionSpec> spSSpecs = dc.getStoragePoolSelectionSpec();
-        final List<PropertySpec> spPSpecs = dc.getStoragePoolPropertySpec();
-
-        new NonStrictExpectations(DataCenters.class) {
-            { dc.retrieveObjectList(vsphereMock, anyString, spSSpecs, spPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/storagePools.json", RetrieveResult.class);
-            }
-            { vsphereMock.getComputeServices(); result = vsphereComputeMock; }
-            { vsphereComputeMock.getAffinityGroupSupport(); result = vsphereAGMock; }
-            { vsphereAGMock.list((AffinityGroupFilterOptions) any);
-                result = om.readJsonFile("src/test/resources/DataCenters/daseinHosts.json", AffinityGroup[].class);
-            }
-        };
-
         Iterable<StoragePool> sps = dc.listStoragePools();
         assertNotNull(sps);
         assertTrue(sps.iterator().hasNext());
@@ -295,21 +240,6 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void getStoragePoolTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<SelectionSpec> spSSpecs = dc.getStoragePoolSelectionSpec();
-        final List<PropertySpec> spPSpecs = dc.getStoragePoolPropertySpec();
-
-        new NonStrictExpectations(DataCenters.class) {
-            { dc.retrieveObjectList(vsphereMock, anyString, spSSpecs, spPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/storagePools.json", RetrieveResult.class);
-            }
-            { vsphereMock.getComputeServices(); result = vsphereComputeMock; }
-            { vsphereComputeMock.getAffinityGroupSupport(); result = vsphereAGMock; }
-            { vsphereAGMock.list((AffinityGroupFilterOptions) any);
-                result = om.readJsonFile("src/test/resources/DataCenters/daseinHosts.json", AffinityGroup[].class);
-            }
-        };
-
         StoragePool storagePool = dc.getStoragePool("datastore-44");
         assertEquals(storagePool.getStoragePoolName(), "local-storage-1 (1)");
         assertEquals(storagePool.getStoragePoolId(), "datastore-44");
@@ -323,36 +253,12 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void getFakeStoragePoolTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<SelectionSpec> spSSpecs = dc.getStoragePoolSelectionSpec();
-        final List<PropertySpec> spPSpecs = dc.getStoragePoolPropertySpec();
-
-        new NonStrictExpectations(DataCenters.class) {
-            { dc.retrieveObjectList(vsphereMock, anyString, spSSpecs, spPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/storagePools.json", RetrieveResult.class);
-            }
-            { vsphereMock.getComputeServices(); result = vsphereComputeMock; }
-            { vsphereComputeMock.getAffinityGroupSupport(); result = vsphereAGMock; }
-            { vsphereAGMock.list((AffinityGroupFilterOptions) any);
-                result = om.readJsonFile("src/test/resources/DataCenters/daseinHosts.json", AffinityGroup[].class);
-            }
-        };
-
         StoragePool pool = dc.getStoragePool("myFakeSP");
         assertTrue("StoragePool returned but id was made up", pool == null);
     }
 
     @Test
     public void listVmFoldersTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<PropertySpec> vfPSpecs = dc.getVmFolderPropertySpec();
-
-        new NonStrictExpectations(DataCenters.class) {
-            { dc.retrieveObjectList(vsphereMock, anyString, null, vfPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/vmFolders.json", RetrieveResult.class);
-            }
-        };
-
         Iterable<Folder> folders = dc.listVMFolders();
         assertNotNull(folders);
         assertTrue(folders.iterator().hasNext());
@@ -372,15 +278,6 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void getVmFolderTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<PropertySpec> vfPSpecs = dc.getVmFolderPropertySpec();
-
-        new NonStrictExpectations(DataCenters.class) {
-            { dc.retrieveObjectList(vsphereMock, anyString, null, vfPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/vmFolders.json", RetrieveResult.class);
-            }
-        };
-
         Folder folder = dc.getVMFolder("group-v81");
         assertEquals(folder.getName(), "VM Folder1");
         assertEquals(folder.getId(), "group-v81");
@@ -392,15 +289,6 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test
     public void getFakeVmFolderTest() throws CloudException, InternalException{
-        final DataCenters dc = new DataCenters(vsphereMock);
-        final List<PropertySpec> vfPSpecs = dc.getVmFolderPropertySpec();
-
-        new NonStrictExpectations(DataCenters.class) {
-            { dc.retrieveObjectList(vsphereMock, anyString, null, vfPSpecs);
-                result = om.readJsonFile("src/test/resources/DataCenters/vmFolders.json", RetrieveResult.class);
-            }
-        };
-
         Folder folder = dc.getVMFolder("myFakeFolder");
         assertTrue("Folder returned but id was made up", folder == null);
     }
