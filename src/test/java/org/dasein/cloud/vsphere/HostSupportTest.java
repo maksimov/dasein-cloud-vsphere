@@ -1,8 +1,6 @@
 package org.dasein.cloud.vsphere;
 
-import com.vmware.vim25.PropertySpec;
-import com.vmware.vim25.RetrieveResult;
-import com.vmware.vim25.SelectionSpec;
+import com.vmware.vim25.*;
 import mockit.Expectations;
 import mockit.NonStrictExpectations;
 import org.dasein.cloud.CloudException;
@@ -10,6 +8,7 @@ import org.dasein.cloud.InternalException;
 import org.dasein.cloud.compute.AffinityGroup;
 import org.dasein.cloud.compute.AffinityGroupFilterOptions;
 import org.dasein.cloud.dc.Region;
+import org.dasein.cloud.dc.StoragePool;
 import org.dasein.cloud.util.Cache;
 import org.dasein.cloud.util.CacheLevel;
 import org.dasein.cloud.vsphere.compute.HostSupport;
@@ -20,9 +19,8 @@ import org.junit.Test;
 
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
 
 /**
  * User: daniellemayne
@@ -32,6 +30,10 @@ import static org.junit.Assert.assertTrue;
 public class HostSupportTest extends VsphereTestBase{
     private ObjectManagement om = new ObjectManagement();
     private final RetrieveResult hosts = om.readJsonFile("src/test/resources/HostSupport/hosts.json", RetrieveResult.class);
+    private final RetrieveResult hostsWithNoNameProperty = om.readJsonFile("src/test/resources/HostSupport/missingNamePropertyHosts.json", RetrieveResult.class);
+    private final RetrieveResult hostsWithNoHostProperty = om.readJsonFile("src/test/resources/HostSupport/missingHostPropertyHosts.json", RetrieveResult.class);
+    private final RetrieveResult hostsWithNoProperties = om.readJsonFile("src/test/resources/HostSupport/missingPropertiesHosts.json", RetrieveResult.class);
+
     private HostSupport hs = null;
     private List<PropertySpec> hostPSpec = null;
     private List<SelectionSpec> hostSSpec = null;
@@ -117,6 +119,98 @@ public class HostSupportTest extends VsphereTestBase{
         };
 
         hs.list(AffinityGroupFilterOptions.getInstance());
+        hs.list(AffinityGroupFilterOptions.getInstance());
+    }
+
+    @Test
+    public void listShouldReturnEmptyListIfCloudReturnsNullObject() throws CloudException, InternalException {
+        cache.clear();
+
+        new Expectations(HostSupport.class) {
+            {hs.retrieveObjectList(vsphereMock, anyString, (List) any, (List) any);
+                result = null;
+                times=1;
+            }
+        };
+
+        Iterable<AffinityGroup> hosts = hs.list(AffinityGroupFilterOptions.getInstance());
+        assertNotNull("Null object not allowed for list, return empty list instead", hosts);
+        assertFalse("Cloud returned null but host list is not empty", hosts.iterator().hasNext());
+        cache.clear(); //make sure cache is empty when we finish
+    }
+
+    @Test
+    public void listShouldReturnEmptyListIfCloudReturnsEmptyObject() throws CloudException, InternalException {
+        cache.clear();
+
+        new Expectations(HostSupport.class) {
+            {hs.retrieveObjectList(vsphereMock, anyString, (List) any, (List) any);
+                result = new RetrieveResult();
+                times=1;
+            }
+        };
+
+        Iterable<AffinityGroup> hosts = hs.list(AffinityGroupFilterOptions.getInstance());
+        assertNotNull("Null object not allowed for list, return empty list instead", hosts);
+        assertFalse("Cloud returned empty list but host list is not empty", hosts.iterator().hasNext());
+        cache.clear(); //make sure cache is empty when we finish
+    }
+
+    @Test
+    public void listShouldReturnEmptyListIfCloudReturnsEmptyPropertyList() throws CloudException, InternalException {
+        cache.clear();
+
+        new Expectations(HostSupport.class) {
+            {hs.retrieveObjectList(vsphereMock, anyString, (List) any, (List) any);
+                result = hostsWithNoProperties;
+                times=1;
+            }
+        };
+
+        Iterable<AffinityGroup> hosts = hs.list(AffinityGroupFilterOptions.getInstance());
+        assertNotNull("Null object not allowed for list, return empty list instead", hosts);
+        assertFalse("Cloud returned empty property list but host list is not empty", hosts.iterator().hasNext());
+        cache.clear(); //make sure cache is empty when we finish
+    }
+
+    @Test
+    public void listShouldReturnEmptyListIfCloudDoesNotReturnNameProperty() throws CloudException, InternalException{
+        cache.clear();
+        new Expectations(HostSupport.class) {
+            {hs.retrieveObjectList(vsphereMock, anyString, (List) any, (List) any);
+                result = hostsWithNoNameProperty;
+                times=1;
+            }
+        };
+
+        Iterable<AffinityGroup> list = hs.list(AffinityGroupFilterOptions.getInstance());
+        assertNotNull("Null object not allowed for list, return empty list instead", list);
+        assertFalse("Cloud did not return all mandatory fields (name), but host list is not empty", list.iterator().hasNext());
+        cache.clear();
+    }
+
+    @Test
+    public void listShouldReturnEmptyListIfCloudDoesNotReturnClusterHostProperty() throws CloudException, InternalException{
+        cache.clear();
+        new Expectations(HostSupport.class) {
+            {hs.retrieveObjectList(vsphereMock, anyString, (List) any, (List) any);
+                result = hostsWithNoHostProperty;
+                times=1;
+            }
+        };
+
+        Iterable<AffinityGroup> list = hs.list(AffinityGroupFilterOptions.getInstance());
+        assertNotNull("Null object not allowed for list, return empty list instead", list);
+        assertFalse("Cloud did not return all mandatory fields (host), but host list is not empty", list.iterator().hasNext());
+        cache.clear();
+    }
+
+    @Test(expected = NoContextException.class)
+    public void listShouldThrowExceptionIfNullContext() throws CloudException, InternalException {
+        new Expectations(HostSupport.class) {
+            { vsphereMock.getContext(); result = null; }
+        };
+
         hs.list(AffinityGroupFilterOptions.getInstance());
     }
 }

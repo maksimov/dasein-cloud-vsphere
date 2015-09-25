@@ -150,7 +150,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             dcToDs.setType("Datacenter");
             dcToDs.setPath("datastore");
             dcToDs.setName("dcToDs");
-            dcToDs.setSkip(Boolean.FALSE);;
+            dcToDs.setSkip(Boolean.FALSE);
 
             spSSpecs.add(dcToDs);
         }
@@ -271,6 +271,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     }
     
     @Override
+    @Nonnull
     public Collection<Region> listRegions() throws InternalException, CloudException {
         APITrace.begin(provider, "listRegions");
         try {
@@ -295,7 +296,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
             if (listobcont != null) {
                for (ObjectContent oc : listobcont.getObjects()) {
                   ManagedObjectReference mr = oc.getObj();
-                  String dcnm = null;
+                  String dcnm;
                   List<DynamicProperty> dps = oc.getPropSet();
                   if (dps != null) {
                      //Since there is only one property PropertySpec pathset
@@ -303,10 +304,8 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
                      for (DynamicProperty dp : dps) {
                          dcnm = (String) dp.getVal();
                          Region region = toRegion(mr.getValue(), dcnm);
-                         if (dcnm != null) {
-                             if ( region != null ) {
-                                 regions.add(region);
-                             }
+                         if ( region != null ) {
+                             regions.add(region);
                          }
                      }
                   }
@@ -322,11 +321,13 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     }
 
     @Override
+    @Nonnull
     public DataCenterCapabilities getCapabilities() {
         return new VsphereDataCenterCapabilities(provider);
     }
 
     @Override
+    @Nonnull
     public Iterable<ResourcePool> listResourcePools(String providerDataCenterId) throws InternalException, CloudException {
         APITrace.begin(provider, "listResourcePools");
         try {
@@ -358,9 +359,11 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
                             }
                         }
                     }
-                    ResourcePool resourcePool = toResourcePool(rpId, rpName, owner, rpStatus);
-                    if ( resourcePool != null && (providerDataCenterId == null || resourcePool.getDataCenterId().equals(providerDataCenterId)) ) {
-                        resourcePools.add(resourcePool);
+                    if (rpName != null && owner != null) {
+                        ResourcePool resourcePool = toResourcePool(rpId, rpName, owner, rpStatus);
+                        if (resourcePool != null && (providerDataCenterId == null || resourcePool.getDataCenterId().equals(providerDataCenterId))) {
+                            resourcePools.add(resourcePool);
+                        }
                     }
                 }
             }
@@ -462,9 +465,11 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
                             }
                         }
                     }
-                    StoragePool storagePool = toStoragePool(dsSummary, dsId, datastoreHostId, datastoreDataCenterId);
-                    if ( storagePool != null ) {
-                        storagePools.add(storagePool);
+                    if (dsSummary != null) {
+                        StoragePool storagePool = toStoragePool(dsSummary, dsId, datastoreHostId, datastoreDataCenterId);
+                        if (storagePool != null) {
+                            storagePools.add(storagePool);
+                        }
                     }
                 }
             }
@@ -549,11 +554,13 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
                                 }
                             }
                         }
-                    }
-                    Folder folder = toFolder(folderId, folderName, folderParent, folderChildren, FolderType.VM);
-                    if ( folder != null ) {
-                        folders.add(folder);
-                        folderMap.put(folderId, folder);
+                        if (folderName != null) {
+                            Folder folder = toFolder(folderId, folderName, folderParent, folderChildren, FolderType.VM);
+                            if (folder != null) {
+                                folders.add(folder);
+                                folderMap.put(folderId, folder);
+                            }
+                        }
                     }
                 }
                 for (Folder f : folders) {
@@ -628,9 +635,9 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
         return rp;
     }
 
-    private StoragePool toStoragePool(DatastoreSummary ds, String dsId, String hostName, String datacenter) {
+    private StoragePool toStoragePool(@Nonnull DatastoreSummary ds, @Nonnull String dsId, String hostId, String datacenter) {
         StoragePool sp = new StoragePool();
-        sp.setAffinityGroupId(hostName);
+        sp.setAffinityGroupId(hostId);
         sp.setDataCenterId(datacenter);
         sp.setRegionId(provider.getContext().getRegionId());
         sp.setStoragePoolName(ds.getName());
@@ -645,7 +652,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
         return sp;
     }
 
-    private Folder toFolder(String folderId, String folderName, String folderParent, List<String> folderChildren, FolderType type) throws CloudException, InternalException{
+    private Folder toFolder(@Nonnull String folderId, @Nonnull String folderName, String folderParent, List<String> folderChildren, FolderType type) throws CloudException, InternalException{
         Folder f = new Folder();
         f.setId(folderId);
         f.setName(folderName);

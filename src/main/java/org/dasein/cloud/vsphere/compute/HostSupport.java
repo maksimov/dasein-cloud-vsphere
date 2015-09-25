@@ -150,9 +150,11 @@ public class HostSupport extends AbstractAffinityGroupSupport<Vsphere> {
                                 }
 
                             }
-                            AffinityGroup host = toAffinityGroup(mr.getValue(), hostName, status, "tempDC");
-                            if ( host != null ) {
-                                temp.add(host);
+                            if (hostName != null) {
+                                AffinityGroup host = toAffinityGroup(mr.getValue(), hostName, status, "tempDC");
+                                if (host != null) {
+                                    temp.add(host);
+                                }
                             }
                         }
                     }

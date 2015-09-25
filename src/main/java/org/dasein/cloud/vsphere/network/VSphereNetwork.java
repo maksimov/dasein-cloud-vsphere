@@ -133,9 +133,16 @@ public class VSphereNetwork extends AbstractVLANSupport {
                                 dvsId = switchMO.getValue();
                             }
                         }
-                        VLAN vlan = toVlan(id, networkName, state, dvsId);
-                        if (vlan != null) {
-                            list.add(vlan);
+                        if ( networkName != null ) {
+                            if (networkType.equals("DistributedVirtualPortgroup")) {
+                                if (dvsId == null) {
+                                    continue;
+                                }
+                            }
+                            VLAN vlan = toVlan(id, networkName, state, dvsId);
+                            if (vlan != null) {
+                                list.add(vlan);
+                            }
                         }
                     }
                 }
