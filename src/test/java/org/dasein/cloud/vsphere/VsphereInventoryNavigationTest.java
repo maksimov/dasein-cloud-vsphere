@@ -24,15 +24,18 @@ public class VsphereInventoryNavigationTest extends VsphereTestBase {
         vin = new VsphereInventoryNavigation();
     }
 
-    @Test(expected = NullPointerException.class)
-    public void nullPropertySpecInRetrieveObjectListRequestShouldThrowException() throws CloudException, InternalException {
-        vin.retrieveObjectList(vsphereMock, "hostFolder", new ArrayList<SelectionSpec>(), null);
-    }
-
     @Test(expected = CloudException.class)
-    public void emptyPropertySpecInRetrieveObjectListRequestShouldThrowException() throws CloudException, InternalException {
+    public void retrieveObjectListRequestShouldThrowExceptionIfEmptyPropertySpecObject() throws CloudException, InternalException {
         final List<PropertySpec> props = new ArrayList<PropertySpec>();
 
         vin.retrieveObjectList(vsphereMock, "hostFolder", null, props);
+    }
+
+    @Test(expected = CloudException.class)
+    public void retrieveObjectListRequestShouldThrowExceptionIfEmptyBaseFolderString() throws CloudException, InternalException {
+        final List<PropertySpec> props = new ArrayList<PropertySpec>();
+        props.add(new PropertySpec());
+
+        vin.retrieveObjectList(vsphereMock, "", null, props);
     }
 }

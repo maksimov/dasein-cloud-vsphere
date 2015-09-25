@@ -22,9 +22,9 @@ public class VsphereInventoryNavigation {
     private static final String VIMSERVICEINSTANCETYPE = "ServiceInstance";
     private static final String VIMSERVICEINSTANCEVALUE = "ServiceInstance";
 
-    public RetrieveResult retrieveObjectList(Vsphere provider, @Nonnull String baseFolder, @Nullable List<SelectionSpec> selectionSpecsArr, @Nonnull List<PropertySpec> pSpecs) throws InternalException, CloudException {
-        if (pSpecs == null) {
-            throw new NullPointerException("PropertySpec must not be null");
+    public RetrieveResult retrieveObjectList(@Nonnull Vsphere provider, @Nonnull String baseFolder, @Nullable List<SelectionSpec> selectionSpecsArr, @Nonnull List<PropertySpec> pSpecs) throws InternalException, CloudException {
+        if ("".equals(baseFolder)) {
+            throw new CloudException("baseFolder must be non-empty string");
         }
         if (pSpecs.size() == 0) {
             throw new CloudException("PropertySpec list must have at least one element");
@@ -48,7 +48,7 @@ public class VsphereInventoryNavigation {
         objectSpec.setSkip(Boolean.TRUE);
         objectSpec.getSelectSet().add(traversalSpec);
 
-        // Create PropertyFilterSpec using the PropertySpec and ObjectPec
+        // Create PropertyFilterSpec using the PropertySpec and ObjectSpec
         // created above.
         PropertyFilterSpec propertyFilterSpec = new PropertyFilterSpec();
         propertyFilterSpec.getPropSet().addAll(pSpecs);

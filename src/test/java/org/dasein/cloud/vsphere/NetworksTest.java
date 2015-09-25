@@ -6,6 +6,8 @@ import mockit.Expectations;
 import mockit.NonStrictExpectations;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
+import org.dasein.cloud.compute.AffinityGroup;
+import org.dasein.cloud.compute.AffinityGroupFilterOptions;
 import org.dasein.cloud.network.VLAN;
 import org.dasein.cloud.network.VLANState;
 import org.dasein.cloud.util.Cache;
@@ -29,6 +31,10 @@ import static org.junit.Assert.*;
 public class NetworksTest extends VsphereTestBase {
     private ObjectManagement om = new ObjectManagement();
     private final RetrieveResult networks = om.readJsonFile("src/test/resources/Networks/networks.json", RetrieveResult.class);
+    private final RetrieveResult networksNoProperties = om.readJsonFile("src/test/resources/Networks/missingPropertiesNetworks.json", RetrieveResult.class);
+    private final RetrieveResult networksNoSummaryProperty = om.readJsonFile("src/test/resources/Networks/missingSummaryPropertyNetworks.json", RetrieveResult.class);
+    private final RetrieveResult networksNoConfigProperty = om.readJsonFile("src/test/resources/Networks/missingConfigPropertyNetworks.json", RetrieveResult.class);
+
     private VSphereNetwork network = null;
     private List<PropertySpec> networkPSpec = null;
 
@@ -113,6 +119,104 @@ public class NetworksTest extends VsphereTestBase {
         };
 
         network.listVlans();
+        network.listVlans();
+    }
+
+    @Test
+    public void listVlansShouldReturnEmptyListIfCloudReturnsNullObject() throws CloudException, InternalException {
+        cache.clear();
+
+        new Expectations(VSphereNetwork.class) {
+            {network.retrieveObjectList(vsphereMock, anyString, (List) any, (List) any);
+                result = null;
+                times=1;
+            }
+        };
+
+        Iterable<VLAN> vlans = network.listVlans();
+        assertNotNull("Null object not allowed for listVlans, return empty list instead", vlans);
+        assertFalse("Cloud returned null but vlan list is not empty", vlans.iterator().hasNext());
+        cache.clear(); //make sure cache is empty when we finish
+    }
+
+    @Test
+    public void listVlansShouldReturnEmptyListIfCloudReturnsEmptyObject() throws CloudException, InternalException {
+        cache.clear();
+
+        new Expectations(VSphereNetwork.class) {
+            {network.retrieveObjectList(vsphereMock, anyString, (List) any, (List) any);
+                result = new RetrieveResult();
+                times=1;
+            }
+        };
+
+        Iterable<VLAN> networks = network.listVlans();
+        assertNotNull("Null object not allowed for listVlans, return empty list instead", networks);
+        assertFalse("Cloud returned empty list but vlan list is not empty", networks.iterator().hasNext());
+        cache.clear(); //make sure cache is empty when we finish
+    }
+
+    @Test
+    public void listVlansShouldReturnEmptyListIfCloudReturnsEmptyPropertyList() throws CloudException, InternalException {
+        cache.clear();
+
+        new Expectations(VSphereNetwork.class) {
+            {network.retrieveObjectList(vsphereMock, anyString, (List) any, (List) any);
+                result = networksNoProperties;
+                times=1;
+            }
+        };
+
+        Iterable<VLAN> vlans = network.listVlans();
+        assertNotNull("Null object not allowed for listVlans, return empty list instead", vlans);
+        assertFalse("Cloud returned empty property list but vlan list is not empty", vlans.iterator().hasNext());
+        cache.clear(); //make sure cache is empty when we finish
+    }
+
+    @Test
+    public void listVlansShouldReturnEmptyListIfCloudDoesNotReturnSummaryProperty() throws CloudException, InternalException{
+        cache.clear();
+        new Expectations(VSphereNetwork.class) {
+            {network.retrieveObjectList(vsphereMock, anyString, (List) any, (List) any);
+                result = networksNoSummaryProperty;
+                times=1;
+            }
+        };
+
+        Iterable<VLAN> list = network.listVlans();
+        assertNotNull("Null object not allowed for listVlans, return empty list instead", list);
+        assertFalse("Cloud did not return all mandatory fields (summary), but vlan list is not empty", list.iterator().hasNext());
+        cache.clear();
+    }
+
+    @Test
+    public void listVlansShouldOnlyReturnStandardNetworksIfCloudDoesNotReturnConfigProperty() throws CloudException, InternalException{
+        cache.clear();
+        new Expectations(VSphereNetwork.class) {
+            {network.retrieveObjectList(vsphereMock, anyString, (List) any, (List) any);
+                result = networksNoConfigProperty;
+                times=1;
+            }
+        };
+
+        Iterable<VLAN> list = network.listVlans();
+        assertNotNull(list);
+
+        int count = 0;
+        for (VLAN v : list) {
+            count++;
+        }
+        assertEquals("Number of vlans returned is incorrect", 2, count);
+
+        cache.clear();
+    }
+
+    @Test(expected = NoContextException.class)
+    public void listShouldThrowExceptionIfNullContext() throws CloudException, InternalException {
+        new Expectations(VSphereNetwork.class) {
+            { vsphereMock.getContext(); result = null; }
+        };
+
         network.listVlans();
     }
 }
