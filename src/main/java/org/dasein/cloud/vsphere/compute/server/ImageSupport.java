@@ -364,6 +364,8 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
                 if (providerImageId.equals(virtualMachineConfigSummary.getName())) {
                     ManagedObjectReference taskmor = vimPort.destroyTask(mor);
                     System.out.println("INSPECT");
+                    
+                    // use taskmor be used to verify operation completed.
                 }
 
             }
