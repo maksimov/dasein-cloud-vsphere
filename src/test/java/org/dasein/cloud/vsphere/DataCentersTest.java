@@ -38,8 +38,9 @@ public class DataCentersTest extends VsphereTestBase{
     private final RetrieveResult datacenters = om.readJsonFile("src/test/resources/DataCenters/datacenters.json", RetrieveResult.class);
     private final RetrieveResult resourcePools = om.readJsonFile("src/test/resources/DataCenters/resourcePools.json", RetrieveResult.class);
     private final RetrieveResult storagePools = om.readJsonFile("src/test/resources/DataCenters/storagePools.json", RetrieveResult.class);
-    private final AffinityGroup[] daseinHosts = om.readJsonFile("src/test/resources/DataCenters/daseinHosts.json", AffinityGroup[].class);
     private final RetrieveResult vmFolders = om.readJsonFile("src/test/resources/DataCenters/vmFolders.json", RetrieveResult.class);
+
+    private final AffinityGroup[] daseinHosts = om.readJsonFile("src/test/resources/DataCenters/daseinHosts.json", AffinityGroup[].class);
     private final AffinityGroup[] standaloneHost = om.readJsonFile("src/test/resources/DataCenters/standaloneHost.json", AffinityGroup[].class);
 
     private final RetrieveResult datacentersNoNameProperty = om.readJsonFile("src/test/resources/DataCenters/missingNamePropertyDatacenters.json", RetrieveResult.class);
@@ -59,7 +60,7 @@ public class DataCentersTest extends VsphereTestBase{
     private List<SelectionSpec> spSSpecs = null;
     private List<PropertySpec> spPSpecs = null;
     private List<PropertySpec> vfPSpecs = null;
-    private List<PropertySpec> props = null;
+    private List<PropertySpec> invalidProps = null;
 
     private Cache<Region> regCache = null;
     private Cache<DataCenter> dcCache = null;
@@ -233,21 +234,21 @@ public class DataCentersTest extends VsphereTestBase{
 
     @Test(expected = InternalException.class)
     public void listRegionsShouldThrowExceptionIfRequestContainsInvalidProperty() throws CloudException, InternalException {
-        props = new ArrayList<PropertySpec>();
+        invalidProps = new ArrayList<PropertySpec>();
         PropertySpec propertySpec = new PropertySpec();
         propertySpec.setAll(Boolean.FALSE);
         propertySpec.setType("Datacenter");
         propertySpec.getPathSet().add("name");
         propertySpec.getPathSet().add("config");  //not a property for a Datacenter object
-        props.add(propertySpec);
+        invalidProps.add(propertySpec);
 
         new Expectations(DataCenters.class) {
-            {dc.retrieveObjectList(vsphereMock, "hostFolder", null, props);
+            {dc.retrieveObjectList(vsphereMock, "hostFolder", null, invalidProps);
                 result = new InternalException("Invalid Property config for Datacenter", new InvalidPropertyFaultMsg("Invalid Property config for Datacenter", new InvalidProperty()));
             };
         };
 
-        dc.retrieveObjectList(vsphereMock, "hostFolder", null, props);
+        dc.retrieveObjectList(vsphereMock, "hostFolder", null, invalidProps);
     }
 
     @Test
@@ -1004,5 +1005,14 @@ public class DataCentersTest extends VsphereTestBase{
         assertNotNull("Cloud did not return childEntity property, but vm folder list is null instead of empty", folder.getChildren());
         assertTrue("No child entities were returned but child entity list is not empty", folder.getChildren().size() == 0);
         vfCache.clear();
+    }
+
+    @Test(expected = NoContextException.class)
+    public void listVMFoldersShouldThrowExceptionIfNullContext() throws CloudException, InternalException {
+        new Expectations(DataCenters.class) {
+            { vsphereMock.getContext(); result = null; }
+        };
+
+        dc.listVMFolders();
     }
 }
