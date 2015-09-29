@@ -643,7 +643,11 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
                             userData.setComputerName(new CustomizationVirtualMachineName());
                             userData.setFullName(options.getWinOwnerName());
                             userData.setOrgName(options.getWinOrgName());
-                            userData.setProductId(options.getWinProductSerialNum());
+                            String serial = options.getWinProductSerialNum();
+                            if (serial == null || serial.trim().length() <= 0) {
+                                serial = "";
+                            }
+                            userData.setProductId(serial);
                             sysprep.setUserData(userData);
 
                             customizationSpec.setIdentity(sysprep);
