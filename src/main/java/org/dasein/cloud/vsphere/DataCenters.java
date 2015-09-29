@@ -76,11 +76,13 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     }
 
     public List<PropertySpec> getRegionPropertySpec() {
-        return VsphereTraversalSpec.createPropertySpec(regionPSpecs, "Datacenter", false, "name");
+        regionPSpecs = VsphereTraversalSpec.createPropertySpec(regionPSpecs, "Datacenter", false, "name");
+        return regionPSpecs;
     }
 
     public List<PropertySpec> getDataCenterPropertySpec() {
-        return VsphereTraversalSpec.createPropertySpec(dcPSpecs, "ClusterComputeResource", false, "name", "overallStatus");
+        dcPSpecs = VsphereTraversalSpec.createPropertySpec(dcPSpecs, "ClusterComputeResource", false, "name", "overallStatus");
+        return dcPSpecs;
     }
 
     public List<SelectionSpec> getResourcePoolSelectionSpec() {
@@ -112,7 +114,8 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     }
 
     public List<PropertySpec> getResourcePoolPropertySpec() {
-        return VsphereTraversalSpec.createPropertySpec(rpPSpecs, "ResourcePool", false, "name", "owner", "runtime");
+        rpPSpecs = VsphereTraversalSpec.createPropertySpec(rpPSpecs, "ResourcePool", false, "name", "owner", "runtime");
+        return rpPSpecs;
     }
 
     public List<SelectionSpec> getStoragePoolSelectionSpec() {
@@ -131,11 +134,13 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     }
 
     public List<PropertySpec> getStoragePoolPropertySpec() {
-        return VsphereTraversalSpec.createPropertySpec(spPSpecs, "Datastore", false, "summary", "host");
+        spPSpecs = VsphereTraversalSpec.createPropertySpec(spPSpecs, "Datastore", false, "summary", "host");
+        return spPSpecs;
     }
 
     public List<PropertySpec> getVmFolderPropertySpec() {
-        return VsphereTraversalSpec.createPropertySpec(vfPSpecs, "Folder", false, "name", "parent", "childEntity");
+        vfPSpecs = VsphereTraversalSpec.createPropertySpec(vfPSpecs, "Folder", false, "name", "parent", "childEntity");
+        return vfPSpecs;
     }
 
     @Override

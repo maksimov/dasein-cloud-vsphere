@@ -194,11 +194,11 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
         VimPortType vimPort = vsphereConnection.getVimPort();
         ServiceContent serviceContent = vsphereConnection.getServiceContent();
         try {
-            
+
         } finally {
             APITrace.end();
         }
-        
+
         return null;
     }
 
@@ -211,13 +211,13 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
         VimPortType vimPort = vsphereConnection.getVimPort();
         ServiceContent serviceContent = vsphereConnection.getServiceContent();
         try {
-            
+
         } finally {
             APITrace.end();
         }
         return null;
     }
-    
+
     SelectionSpec getSelectionSpec(String name) {
         SelectionSpec genericSpec = new SelectionSpec();
         genericSpec.setName(name);
@@ -237,7 +237,7 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
         }
         String token = null;
         if (rslts != null && rslts.getToken() != null) {
-                token = rslts.getToken();
+            token = rslts.getToken();
         }
 
         while (token != null && !token.isEmpty()) {
@@ -297,7 +297,7 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
                 if (providerImageId.equals(virtualMachineConfigSummary.getName())) {
                     ManagedObjectReference taskmor = vimPort.destroyTask(mor);
                     System.out.println("INSPECT");
-                    
+
                     // use taskmor be used to verify operation completed.
                 }
 
