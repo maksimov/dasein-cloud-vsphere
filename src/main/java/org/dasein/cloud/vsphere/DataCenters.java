@@ -55,13 +55,13 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     private Vsphere provider;
 
     public AffinityGroupSupport agSupport;
-    public List<PropertySpec>  regionPSpecs;
-    public List<PropertySpec>  dcPSpecs;
-    public List<SelectionSpec> rpSSpecs;
-    public List<PropertySpec> rpPSpecs;
-    public List<SelectionSpec> spSSpecs;
-    public List<PropertySpec> spPSpecs;
-    public List<PropertySpec> vfPSpecs;
+    public List<SelectionSpec>  rpSSpecs;
+    public List<SelectionSpec>  spSSpecs;
+    private List<PropertySpec>  regionPSpecs;
+    private List<PropertySpec>  dcPSpecs;
+    private List<PropertySpec>  rpPSpecs;
+    private List<PropertySpec>  spPSpecs;
+    private List<PropertySpec>  vfPSpecs;
 
 
     protected DataCenters(@Nonnull Vsphere provider) {
