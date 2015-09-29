@@ -14,7 +14,6 @@ import org.apache.log4j.Logger;
 import org.dasein.cloud.AsynchronousTask;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
-import org.dasein.cloud.OperationNotSupportedException;
 import org.dasein.cloud.compute.AbstractImageSupport;
 import org.dasein.cloud.compute.Architecture;
 import org.dasein.cloud.compute.ImageClass;
@@ -22,29 +21,24 @@ import org.dasein.cloud.compute.ImageCopyOptions;
 import org.dasein.cloud.compute.ImageCreateOptions;
 import org.dasein.cloud.compute.ImageFilterOptions;
 import org.dasein.cloud.compute.MachineImage;
-import org.dasein.cloud.compute.MachineImageFormat;
 import org.dasein.cloud.compute.MachineImageState;
 import org.dasein.cloud.compute.Platform;
 import org.dasein.cloud.vsphere.Vsphere;
 import org.dasein.cloud.vsphere.VsphereConnection;
+import org.dasein.cloud.vsphere.VsphereTraversalSpec;
 import org.dasein.cloud.vsphere.capabilities.VsphereImageCapabilities;
 
 import com.vmware.vim25.DynamicProperty;
 import com.vmware.vim25.InvalidPropertyFaultMsg;
-import com.vmware.vim25.InvalidStateFaultMsg;
 import com.vmware.vim25.ManagedEntityStatus;
 import com.vmware.vim25.ManagedObjectReference;
 import com.vmware.vim25.ObjectContent;
-import com.vmware.vim25.ObjectSpec;
 import com.vmware.vim25.PropertyFilterSpec;
-import com.vmware.vim25.PropertySpec;
 import com.vmware.vim25.RetrieveOptions;
 import com.vmware.vim25.RetrieveResult;
 import com.vmware.vim25.RuntimeFaultFaultMsg;
 import com.vmware.vim25.SelectionSpec;
 import com.vmware.vim25.ServiceContent;
-import com.vmware.vim25.TaskInProgressFaultMsg;
-import com.vmware.vim25.TraversalSpec;
 import com.vmware.vim25.VimFaultFaultMsg;
 import com.vmware.vim25.VimPortType;
 import com.vmware.vim25.VirtualMachineConfigSummary;
@@ -95,35 +89,12 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
         vmList.add("VirtualMachine");
         ManagedObjectReference cViewRef = vimPort.createContainerView(viewManager, rootFolder, vmList, true);
 
-        // create a traversal spec to select all objects in the view
-        TraversalSpec tSpec = new TraversalSpec();
-        tSpec.setName("traverseEntities");
-        tSpec.setPath("view");
-        tSpec.setSkip(false);
-        tSpec.setType("ContainerView");
+        VsphereTraversalSpec vsphereTraversalSpec 
+            = new VsphereTraversalSpec("traverseEntities", "view", "ContainerView", false)
+        .withObjectSpec(cViewRef, false)
+        .withPropertySpec("VirtualMachine", "summary.config", "summary.overallStatus");
+        return vsphereTraversalSpec.getPropertyFilterSpecList();
 
-        // create an object spec to define the beginning of the traversal;
-        // container view is the root object for this traversal
-        ObjectSpec oSpec = new ObjectSpec();
-        oSpec.setObj(cViewRef);
-        oSpec.setSkip(false);
-        oSpec.getSelectSet().add(tSpec);
-
-        // specify the property for retrieval (virtual machine name)
-        PropertySpec pSpec = new PropertySpec();
-        pSpec.setType("VirtualMachine");
-        pSpec.getPathSet().add("summary.config");
-        pSpec.getPathSet().add("summary.overallStatus");
-
-        PropertyFilterSpec fSpec = new PropertyFilterSpec();
-        fSpec.getObjectSet().add(oSpec);
-        fSpec.getPropSet().add(pSpec);
-
-        // Create a list for the filters and add the spec to it
-        List<PropertyFilterSpec> fSpecList = new ArrayList<PropertyFilterSpec>();
-        fSpecList.add(fSpec);
-
-        return fSpecList;
     }
 
     @Override
@@ -252,51 +223,36 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
         genericSpec.setName(name);
         return genericSpec;
     }
-    
-    List<ObjectContent> retrievePropertiesAllObjects(
-            List<PropertyFilterSpec> listpfs) throws RuntimeFaultFaultMsg,
-            InvalidPropertyFaultMsg {
-        VsphereConnection vsphereConnection = null;
-        try {
-            vsphereConnection = provider.getServiceInstance();
-        } catch ( CloudException e ) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch ( InternalException e ) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+
+    List<ObjectContent> retrievePropertiesAllObjects(List<PropertyFilterSpec> listpfs) throws RuntimeFaultFaultMsg, InvalidPropertyFaultMsg, CloudException, InternalException {
+        VsphereConnection vsphereConnection = provider.getServiceInstance();
         VimPortType vimPort = vsphereConnection.getVimPort();
         ServiceContent serviceContent = vsphereConnection.getServiceContent();
-        
-    RetrieveOptions propObjectRetrieveOpts = new RetrieveOptions();
-    List<ObjectContent> listobjcontent = new ArrayList<ObjectContent>();
-    RetrieveResult rslts = vimPort.retrievePropertiesEx(
-            serviceContent.getPropertyCollector(), listpfs,
-                    propObjectRetrieveOpts);
-    if (rslts != null && rslts.getObjects() != null
-                    && !rslts.getObjects().isEmpty()) {
-            listobjcontent.addAll(rslts.getObjects());
-    }
-    String token = null;
-    if (rslts != null && rslts.getToken() != null) {
-            token = rslts.getToken();
-    }
 
-    while (token != null && !token.isEmpty()) {
-            rslts = vimPort.continueRetrievePropertiesEx(serviceContent
-                            .getPropertyCollector(), token);
+        RetrieveOptions propObjectRetrieveOpts = new RetrieveOptions();
+        List<ObjectContent> listobjcontent = new ArrayList<ObjectContent>();
+        RetrieveResult rslts = vimPort.retrievePropertiesEx(serviceContent.getPropertyCollector(), listpfs, propObjectRetrieveOpts);
+        if (rslts != null && rslts.getObjects() != null && !rslts.getObjects().isEmpty()) {
+            listobjcontent.addAll(rslts.getObjects());
+        }
+        String token = null;
+        if (rslts != null && rslts.getToken() != null) {
+                token = rslts.getToken();
+        }
+
+        while (token != null && !token.isEmpty()) {
+            rslts = vimPort.continueRetrievePropertiesEx(serviceContent.getPropertyCollector(), token);
             token = null;
             if (rslts != null) {
-                    token = rslts.getToken();
-                    if (rslts.getObjects() != null && !rslts.getObjects().isEmpty()) {
-                            listobjcontent.addAll(rslts.getObjects());
-                    }
+                token = rslts.getToken();
+                if (rslts.getObjects() != null && !rslts.getObjects().isEmpty()) {
+                    listobjcontent.addAll(rslts.getObjects());
+                }
             }
+        }
+        return listobjcontent;
     }
-    return listobjcontent;
-}
-    
+
     @Override
     public void remove(String providerImageId, boolean checkState) throws CloudException, InternalException {
         // TODO Auto-generated method stub
@@ -315,36 +271,13 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
             vmList.add("VirtualMachine");
             ManagedObjectReference cViewRef = vimPort.createContainerView(viewManager, rootFolder, vmList, true);
 
-            // create a traversal spec to select all objects in the view
-            TraversalSpec tSpec = new TraversalSpec();
-            tSpec.setName("traverseEntities");
-            tSpec.setPath("view");
-            tSpec.setSkip(false);
-            tSpec.setType("ContainerView");
-
-            // create an object spec to define the beginning of the traversal;
-            // container view is the root object for this traversal
-            ObjectSpec oSpec = new ObjectSpec();
-            oSpec.setObj(cViewRef);
-            oSpec.setSkip(false);
-            oSpec.getSelectSet().add(tSpec);
-
-            // specify the property for retrieval (virtual machine name)
-            PropertySpec pSpec = new PropertySpec();
-            pSpec.setType("VirtualMachine");
-            pSpec.getPathSet().add("summary.config");
-
-            PropertyFilterSpec fSpec = new PropertyFilterSpec();
-            fSpec.getObjectSet().add(oSpec);
-            fSpec.getPropSet().add(pSpec);
-
-            // Create a list for the filters and add the spec to it
-            List<PropertyFilterSpec> fSpecList = new ArrayList<PropertyFilterSpec>();
-            fSpecList.add(fSpec);
+            VsphereTraversalSpec vsphereTraversalSpec = new VsphereTraversalSpec("traverseEntities", "view", "ContainerView", false)
+                .withObjectSpec(cViewRef, false)
+                .withPropertySpec("VirtualMachine", "summary.config");
 
             RetrieveResult props = null;
             try {
-                props = vimPort.retrievePropertiesEx(serviceContent.getPropertyCollector(), fSpecList, new RetrieveOptions());
+                props = vimPort.retrievePropertiesEx(serviceContent.getPropertyCollector(), vsphereTraversalSpec.getPropertyFilterSpecList(), new RetrieveOptions());
             } catch ( InvalidPropertyFaultMsg e ) {
                 throw new CloudException(e);
             }

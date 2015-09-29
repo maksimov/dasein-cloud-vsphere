@@ -1,12 +1,12 @@
 package org.dasein.cloud.vsphere;
 
 import com.vmware.vim25.*;
+
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -36,26 +36,16 @@ public class VsphereInventoryNavigation {
 
         ManagedObjectReference rootFolder = serviceContent.getRootFolder();
 
-        TraversalSpec traversalSpec = getFolderTraversalSpec(baseFolder);
+        VsphereTraversalSpec traversalSpec = new VsphereTraversalSpec("VisitFolders", "childEntity", "Folder", false)
+            .withSelectionSpec("VisitFolders", "DataCenterTo" + baseFolder,  baseFolder,  "Datacenter",  false);
 
         if (selectionSpecsArr != null) {
-            traversalSpec.getSelectSet().addAll(selectionSpecsArr);
+            traversalSpec = traversalSpec.withSelectionSpec(selectionSpecsArr);
         }
 
-        // Now create Object Spec
-        ObjectSpec objectSpec = new ObjectSpec();
-        objectSpec.setObj(rootFolder);
-        objectSpec.setSkip(Boolean.TRUE);
-        objectSpec.getSelectSet().add(traversalSpec);
+        traversalSpec = traversalSpec.withObjectSpec(rootFolder, true)
+                .withPropertySpec(pSpecs);
 
-        // Create PropertyFilterSpec using the PropertySpec and ObjectSpec
-        // created above.
-        PropertyFilterSpec propertyFilterSpec = new PropertyFilterSpec();
-        propertyFilterSpec.getPropSet().addAll(pSpecs);
-        propertyFilterSpec.getObjectSet().add(objectSpec);
-
-        List<PropertyFilterSpec> listfps = new ArrayList<PropertyFilterSpec>(1);
-        listfps.add(propertyFilterSpec);
         ServiceContent vimServiceContent = null;
         try {
             ManagedObjectReference ref = new ManagedObjectReference();
@@ -68,7 +58,7 @@ public class VsphereInventoryNavigation {
 
         RetrieveResult props = null;
         try {
-            props = vimPortType.retrievePropertiesEx(vimServiceContent.getPropertyCollector(), listfps, new RetrieveOptions());
+            props = vimPortType.retrievePropertiesEx(vimServiceContent.getPropertyCollector(), traversalSpec.getPropertyFilterSpecList(), new RetrieveOptions());
         } catch ( InvalidPropertyFaultMsg e ) {
             throw new InternalException("InvalidPropertyFault", e);
         } catch ( RuntimeFaultFaultMsg e ) {
@@ -82,26 +72,11 @@ public class VsphereInventoryNavigation {
 
     private  @Nonnull TraversalSpec getFolderTraversalSpec(@Nonnull String baseFolder) {
         // Create a traversal spec that starts from the 'root' objects
-        SelectionSpec sSpec = new SelectionSpec();
-        sSpec.setName("VisitFolders");
 
-        TraversalSpec dataCenterToFolder = new TraversalSpec();
-        dataCenterToFolder.setName("DataCenterTo" + baseFolder);
-        dataCenterToFolder.setType("Datacenter");
-        dataCenterToFolder.setPath(baseFolder);
-        dataCenterToFolder.setSkip(false);
-        dataCenterToFolder.getSelectSet().add(sSpec);
+        VsphereTraversalSpec tSpec = new VsphereTraversalSpec("VisitFolders", "childEntity", "Folder", false)
+            .withSelectionSpec("VisitFolders", "DataCenterTo" + baseFolder,  baseFolder,  "Datacenter",  false);
 
-        TraversalSpec traversalSpec = new TraversalSpec();
-        traversalSpec.setName("VisitFolders");
-        traversalSpec.setType("Folder");
-        traversalSpec.setPath("childEntity");
-        traversalSpec.setSkip(false);
-        List<SelectionSpec> sSpecArr = new ArrayList<SelectionSpec>();
-        sSpecArr.add(sSpec);
-        sSpecArr.add(dataCenterToFolder);
-        traversalSpec.getSelectSet().addAll(sSpecArr);
-        return traversalSpec;
+        return tSpec.getTraversalSpec();
     }
 
 }
