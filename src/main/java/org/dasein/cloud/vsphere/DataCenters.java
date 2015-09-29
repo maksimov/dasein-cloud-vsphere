@@ -169,7 +169,6 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     public @Nonnull Collection<DataCenter> listDataCenters(@Nonnull String providerRegionId) throws InternalException, CloudException {
         APITrace.begin(getProvider(), "listDataCenters");
         try {
-
             Region region = getRegion(providerRegionId);
 
             if( region == null ) {
