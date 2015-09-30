@@ -55,13 +55,13 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     private Vsphere provider;
 
     public AffinityGroupSupport agSupport;
-    public List<PropertySpec>  regionPSpecs;
-    public List<PropertySpec>  dcPSpecs;
-    public List<SelectionSpec> rpSSpecs;
-    public List<PropertySpec> rpPSpecs;
-    public List<SelectionSpec> spSSpecs;
-    public List<PropertySpec> spPSpecs;
-    public List<PropertySpec> vfPSpecs;
+    public List<SelectionSpec>  rpSSpecs;
+    public List<SelectionSpec>  spSSpecs;
+    private List<PropertySpec>  regionPSpecs;
+    private List<PropertySpec>  dcPSpecs;
+    private List<PropertySpec>  rpPSpecs;
+    private List<PropertySpec>  spPSpecs;
+    private List<PropertySpec>  vfPSpecs;
 
 
     protected DataCenters(@Nonnull Vsphere provider) {
@@ -76,27 +76,12 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     }
 
     public List<PropertySpec> getRegionPropertySpec() {
-        if (regionPSpecs == null) {
-            regionPSpecs = new ArrayList<PropertySpec>();
-            PropertySpec propertySpec = new PropertySpec();
-            propertySpec.setAll(Boolean.FALSE);
-            propertySpec.getPathSet().add("name");
-            propertySpec.setType("Datacenter");
-            regionPSpecs.add(propertySpec);
-        }
+        regionPSpecs = VsphereTraversalSpec.createPropertySpec(regionPSpecs, "Datacenter", false, "name");
         return regionPSpecs;
     }
 
     public List<PropertySpec> getDataCenterPropertySpec() {
-        if (dcPSpecs == null) {
-            dcPSpecs = new ArrayList<PropertySpec>();
-            PropertySpec dcPropertySpec = new PropertySpec();
-            dcPropertySpec.setAll(Boolean.FALSE);
-            dcPropertySpec.getPathSet().add("name");
-            dcPropertySpec.getPathSet().add("overallStatus");
-            dcPropertySpec.setType("ClusterComputeResource");
-            dcPSpecs.add(dcPropertySpec);
-        }
+        dcPSpecs = VsphereTraversalSpec.createPropertySpec(dcPSpecs, "ClusterComputeResource", false, "name", "overallStatus");
         return dcPSpecs;
     }
 
@@ -129,16 +114,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     }
 
     public List<PropertySpec> getResourcePoolPropertySpec() {
-        if (rpPSpecs == null) {
-            rpPSpecs = new ArrayList<PropertySpec>();
-            PropertySpec propertySpec = new PropertySpec();
-            propertySpec.setAll(Boolean.FALSE);
-            propertySpec.getPathSet().add("name");
-            propertySpec.getPathSet().add("owner");
-            propertySpec.getPathSet().add("runtime");
-            propertySpec.setType("ResourcePool");
-            rpPSpecs.add(propertySpec);
-        }
+        rpPSpecs = VsphereTraversalSpec.createPropertySpec(rpPSpecs, "ResourcePool", false, "name", "owner", "runtime");
         return rpPSpecs;
     }
 
@@ -158,29 +134,12 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     }
 
     public List<PropertySpec> getStoragePoolPropertySpec() {
-        if (spPSpecs == null) {
-            spPSpecs = new ArrayList<PropertySpec>();
-            PropertySpec propertySpec = new PropertySpec();
-            propertySpec.setAll(Boolean.FALSE);
-            propertySpec.getPathSet().add("summary");
-            propertySpec.getPathSet().add("host");
-            propertySpec.setType("Datastore");
-            spPSpecs.add(propertySpec);
-        }
+        spPSpecs = VsphereTraversalSpec.createPropertySpec(spPSpecs, "Datastore", false, "summary", "host");
         return spPSpecs;
     }
 
     public List<PropertySpec> getVmFolderPropertySpec() {
-        if (vfPSpecs == null) {
-            vfPSpecs = new ArrayList<PropertySpec>();
-            PropertySpec propertySpec = new PropertySpec();
-            propertySpec.setAll(Boolean.FALSE);
-            propertySpec.getPathSet().add("name");
-            propertySpec.getPathSet().add("parent");
-            propertySpec.getPathSet().add("childEntity");
-            propertySpec.setType("Folder");
-            vfPSpecs.add(propertySpec);
-        }
+        vfPSpecs = VsphereTraversalSpec.createPropertySpec(vfPSpecs, "Folder", false, "name", "parent", "childEntity");
         return vfPSpecs;
     }
 
@@ -210,7 +169,6 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
     public @Nonnull Collection<DataCenter> listDataCenters(@Nonnull String providerRegionId) throws InternalException, CloudException {
         APITrace.begin(getProvider(), "listDataCenters");
         try {
-
             Region region = getRegion(providerRegionId);
 
             if( region == null ) {
