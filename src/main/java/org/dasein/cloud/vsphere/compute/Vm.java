@@ -51,7 +51,6 @@ import com.vmware.vim25.mo.ServiceInstance;
 import com.vmware.vim25.mo.Task;
 import org.dasein.util.CalendarWrapper;
 import org.dasein.util.uom.storage.Gigabyte;
-import org.dasein.util.uom.storage.Kilobyte;
 import org.dasein.util.uom.storage.Megabyte;
 import org.dasein.util.uom.storage.Storage;
 import org.dasein.util.uom.time.Minute;
@@ -611,7 +610,7 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
                     }
                     CustomizationSpec customizationSpec = new CustomizationSpec();
                     if( isCustomised ) {
-                        String templatePlatform = template.getGuest().getGuestFullName();
+                        String templatePlatform = template.getConfig().getGuestFullName();
                         if(templatePlatform == null) templatePlatform = template.getName();
                         Platform platform = Platform.guess(templatePlatform.toLowerCase());
                         if (platform.isLinux()) {
@@ -645,7 +644,8 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
                             userData.setOrgName(options.getWinOrgName());
                             String serial = options.getWinProductSerialNum();
                             if (serial == null || serial.trim().length() <= 0) {
-                                serial = "";
+                                log.warn("Product license key not specified in launch options. Trying to get default.");
+                                serial = getWindowsProductLicenseForOSEdition(template.getConfig().getGuestFullName());
                             }
                             userData.setProductId(serial);
                             sysprep.setUserData(userData);
@@ -2032,5 +2032,185 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
     @Override
     public boolean isSubscribed() throws CloudException, InternalException {
         return ( getProvider().getServiceInstance() != null );
+    }
+
+    @Nonnull
+    private String getWindowsProductLicenseForOSEdition(String osEdition) {
+        if (osEdition.contains("Windows 10")) {
+            if (osEdition.contains("Professional N")) {
+                return "MH37W-N47XK-V7XM9-C7227-GCQG9";
+            }
+            else if (osEdition.contains("Professional")) {
+                return "W269N-WFGWX-YVC9B-4J6C9-T83GX";
+            }
+            else if (osEdition.contains("Enterprise N")) {
+                return "DPH2V-TTNVB-4X9Q3-TJR4H-KHJW4";
+            }
+            else if (osEdition.contains("Enterprise")) {
+                return "NPPR9-FWDCX-D2C8J-H872K-2YT43";
+            }
+            else if (osEdition.contains("Education N")) {
+                return "2WH4N-8QGBV-H22JP-CT43Q-MDWWJ";
+            }
+            else if (osEdition.contains("Education")) {
+                return "NW6C2-QMPVW-D7KKK-3GKT6-VCFB2";
+            }
+            else if (osEdition.contains("Enterprise 2015 LTSB N")) {
+                return "2F77B-TNFGY-69QQF-B8YKP-D69TJ";
+            }
+            else if (osEdition.contains("Enterprise 2015 LTSB")) {
+                return "WNMTR-4C88C-JK8YV-HQ7T2-76DF9";
+            }
+        }
+        else if (osEdition.contains("Windows 8.1")) {
+            if (osEdition.contains("Professional N")) {
+                return "HMCNV-VVBFX-7HMBH-CTY9B-B4FXY";
+            }
+            else if (osEdition.contains("Professional")) {
+                return "GCRJD-8NW9H-F2CDX-CCM8D-9D6T9";
+            }
+            else if (osEdition.contains("Enterprise N")) {
+                return "TT4HM-HN7YT-62K67-RGRQJ-JFFXW";
+            }
+            else if (osEdition.contains("Enterprise")) {
+                return "MHF9N-XY6XB-WVXMC-BTDCT-MKKG7";
+            }
+        }
+        else if (osEdition.contains("Windows Server 2012 R2")) {
+            if (osEdition.contains("Server Standard")) {
+                return "D2N9P-3P6X9-2R39C-7RTCD-MDVJX";
+            }
+            else if (osEdition.contains("Datacenter")) {
+                return "W3GGN-FT8W3-Y4M27-J84CP-Q3VJ9";
+            }
+            else if (osEdition.contains("Essentials")) {
+                return "KNC87-3J2TX-XB4WP-VCPJV-M4FWM";
+            }
+        }
+        else if (osEdition.contains("Windows 8")) {
+            if (osEdition.contains("Professional N")) {
+                return "XCVCF-2NXM9-723PB-MHCB7-2RYQQ";
+            }
+            else if (osEdition.contains("Professional")) {
+                return "NG4HW-VH26C-733KW-K6F98-J8CK4";
+            }
+            else if (osEdition.contains("Enterprise N")) {
+                return "JMNMF-RHW7P-DMY6X-RF3DR-X2BQT";
+            }
+            else if (osEdition.contains("Enterprise")) {
+                return "32JNW-9KQ84-P47T8-D8GGY-CWCK7";
+            }
+        }
+        else if (osEdition.contains("Windows Server 2012")) {
+            if (osEdition.contains("Windows Server 2012 N")) {
+                return "8N2M2-HWPGY-7PGT9-HGDD8-GVGGY";
+            }
+            else if (osEdition.contains("Single Language")) {
+                return "2WN2H-YGCQR-KFX6K-CD6TF-84YXQ";
+            }
+            else if (osEdition.contains("Country Specific")) {
+                return "4K36P-JN4VD-GDC6V-KDT89-DYFKP";
+            }
+            else if (osEdition.contains("Server Standard")) {
+                return "XC9B7-NBPP2-83J2H-RHMBY-92BT4";
+            }
+            else if (osEdition.contains("MultiPoint Standard")) {
+                return "HM7DN-YVMH3-46JC3-XYTG7-CYQJJ";
+            }
+            else if (osEdition.contains("MultiPoint Premium")) {
+                return "XNH6W-2V9GX-RGJ4K-Y8X6F-QGJ2G";
+            }
+            else if (osEdition.contains("Datacenter")) {
+                return "48HP8-DN98B-MYWDG-T2DCC-8W83P";
+            }
+            else {
+                return "BN3D2-R7TKB-3YPBD-8DRP2-27GG4";
+            }
+        }
+        else if (osEdition.contains("Windows 7")) {
+            if (osEdition.contains("Professional N")) {
+                return "MRPKT-YTG23-K7D7T-X2JMM-QY7MG";
+            }
+            if (osEdition.contains("Professional E")) {
+                return "W82YF-2Q76Y-63HXB-FGJG9-GF7QX";
+            }
+            else if (osEdition.contains("Professional")) {
+                return "FJ82H-XT6CR-J8D7P-XQJJ2-GPDD4";
+            }
+            else if (osEdition.contains("Enterprise N")) {
+                return "YDRBP-3D83W-TY26F-D46B2-XCKRJ";
+            }
+            else if (osEdition.contains("Enterprise E")) {
+                return "C29WB-22CC8-VJ326-GHFJW-H9DH4";
+            }
+            else if (osEdition.contains("Enterprise")) {
+                return "33PXH-7Y6KF-2VJC9-XBBR8-HVTHH";
+            }
+        }
+        else if (osEdition.contains("Windows Server 2008 R2")) {
+            if (osEdition.contains("for Itanium-based Systems")) {
+                return "GT63C-RJFQ3-4GMB6-BRFB9-CB83V";
+            }
+            else if (osEdition.contains("Datacenter")) {
+                return "74YFP-3QFB3-KQT8W-PMXWJ-7M648";
+            }
+            else if (osEdition.contains("Enterprise")) {
+                return "489J6-VHDMP-X63PK-3K798-CPX3Y";
+            }
+            else if (osEdition.contains("Standard")) {
+                return "YC6KT-GKW9T-YTKYR-T4X34-R7VHC";
+            }
+            else if (osEdition.contains("HPC Edition")) {
+                return "TT8MH-CG224-D3D7Q-498W2-9QCTX";
+            }
+            else if (osEdition.contains("Web")) {
+                return "6TPJF-RBVHG-WBW2R-86QPH-6RTM4";
+            }
+        }
+        else if (osEdition.contains("Windows Vista")) {
+            if (osEdition.contains("Business N")) {
+                return "HMBQG-8H2RH-C77VX-27R82-VMQBT";
+            }
+            else if (osEdition.contains("Business")) {
+                return "YFKBB-PQJJV-G996G-VWGXY-2V3X8";
+            }
+            else if (osEdition.contains("Enterprise N")) {
+                return "VTC42-BM838-43QHV-84HX6-XJXKV";
+            }
+            else if (osEdition.contains("Enterprise")) {
+                return "VKK3X-68KWM-X2YGT-QR4M6-4BWMV";
+            }
+        }
+        else if (osEdition.contains("Windows Server 2008")) {
+            if (osEdition.contains("for Itanium-Based Systems")) {
+                return "4DWFP-JF3DJ-B7DTH-78FJB-PDRHK";
+            }
+            else if (osEdition.contains("Datacenter without Hyper-V")) {
+                return "22XQ2-VRXRG-P8D42-K34TD-G3QQC";
+            }
+            else if (osEdition.contains("Datacenter")) {
+                return "7M67G-PC374-GR742-YH8V4-TCBY3";
+            }
+            else if (osEdition.contains("HPC")) {
+                return "RCTX3-KWVHP-BR6TB-RB6DM-6X7HP";
+            }
+            else if (osEdition.contains("Enterprise without Hyper-V")) {
+                return "39BXF-X8Q23-P2WWT-38T2F-G3FPG";
+            }
+            else if (osEdition.contains("Enterprise")) {
+                return "YQGMW-MPWTJ-34KDK-48M3W-X4Q6V";
+            }
+            else if (osEdition.contains("Standard without Hyper-V")) {
+                return "W7VD6-7JFBR-RX26B-YKQ3Y-6FFFJ";
+            }
+            else if (osEdition.contains("Standard")) {
+                return "TM24T-X9RMF-VWXK6-X8JC9-BFGM2";
+            }
+        }
+        else if (osEdition.contains("Windows Web Server 2008")) {
+            return "WYR28-R7TFJ-3X2YQ-YCY4H-M249D";
+        }
+        log.warn("Couldn't find a default product key for OS. Returning empty string.");
+        return "";
     }
 }
