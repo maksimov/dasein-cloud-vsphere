@@ -6,10 +6,14 @@ import org.dasein.cloud.InternalException;
 import org.dasein.cloud.compute.AbstractVolumeSupport;
 import org.dasein.cloud.compute.Volume;
 import org.dasein.cloud.compute.VolumeCapabilities;
+import org.dasein.cloud.compute.VolumeCreateOptions;
+import org.dasein.cloud.util.APITrace;
 import org.dasein.cloud.vsphere.Vsphere;
 import org.dasein.cloud.vsphere.capabilities.HardDiskCapabilities;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * User: daniellemayne
@@ -24,6 +28,22 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
         this.provider = provider;
     }
 
+    @Override
+    public void attach(@Nonnull String volumeId, @Nonnull String toServer, @Nonnull String deviceId) throws InternalException, CloudException {
+        super.attach(volumeId, toServer, deviceId);
+    }
+
+    @Nonnull
+    @Override
+    public String createVolume(@Nonnull VolumeCreateOptions options) throws InternalException, CloudException {
+        return super.createVolume(options);
+    }
+
+    @Override
+    public void detach(@Nonnull String volumeId, boolean force) throws InternalException, CloudException {
+        super.detach(volumeId, force);
+    }
+
     private transient volatile HardDiskCapabilities capabilities;
     @Override
     public VolumeCapabilities getCapabilities() throws CloudException, InternalException {
@@ -36,7 +56,17 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
     @Nonnull
     @Override
     public Iterable<Volume> listVolumes() throws InternalException, CloudException {
-        return null;
+        APITrace.begin(provider, "HardDisk.listVolumes");
+        try {
+            List<Volume> list = new ArrayList<Volume>();
+
+
+
+            return list;
+        }
+        finally {
+            APITrace.end();
+        }
     }
 
     @Override

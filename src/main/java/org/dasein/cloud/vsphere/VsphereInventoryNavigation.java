@@ -37,7 +37,7 @@ public class VsphereInventoryNavigation {
         ManagedObjectReference rootFolder = serviceContent.getRootFolder();
 
         VsphereTraversalSpec traversalSpec = new VsphereTraversalSpec("VisitFolders", "childEntity", "Folder", false)
-            .withSelectionSpec("VisitFolders", "DataCenterTo" + baseFolder,  baseFolder,  "Datacenter",  false);
+            .withSelectionSpec("VisitFolders", "DataCenterTo" + baseFolder, "Datacenter", baseFolder, false);
 
         if (selectionSpecsArr != null) {
             traversalSpec = traversalSpec.withSelectionSpec(selectionSpecsArr);
@@ -45,6 +45,8 @@ public class VsphereInventoryNavigation {
 
         traversalSpec = traversalSpec.withObjectSpec(rootFolder, true)
                 .withPropertySpec(pSpecs);
+
+        traversalSpec.setPropertyFilterSpecList();
 
         ServiceContent vimServiceContent = null;
         try {
@@ -74,7 +76,7 @@ public class VsphereInventoryNavigation {
         // Create a traversal spec that starts from the 'root' objects
 
         VsphereTraversalSpec tSpec = new VsphereTraversalSpec("VisitFolders", "childEntity", "Folder", false)
-            .withSelectionSpec("VisitFolders", "DataCenterTo" + baseFolder,  baseFolder,  "Datacenter",  false);
+            .withSelectionSpec("VisitFolders", "DataCenterTo" + baseFolder, "Datacenter", baseFolder, false);
 
         return tSpec.getTraversalSpec();
     }

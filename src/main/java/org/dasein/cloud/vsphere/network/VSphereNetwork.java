@@ -11,10 +11,7 @@ import org.dasein.cloud.network.*;
 import org.dasein.cloud.util.APITrace;
 import org.dasein.cloud.util.Cache;
 import org.dasein.cloud.util.CacheLevel;
-import org.dasein.cloud.vsphere.NoContextException;
-import org.dasein.cloud.vsphere.ObjectManagement;
-import org.dasein.cloud.vsphere.Vsphere;
-import org.dasein.cloud.vsphere.VsphereInventoryNavigation;
+import org.dasein.cloud.vsphere.*;
 import org.dasein.util.uom.time.Day;
 import org.dasein.util.uom.time.TimePeriod;
 
@@ -47,12 +44,7 @@ public class VSphereNetwork extends AbstractVLANSupport {
 
     public List<PropertySpec> getNetworkPSpec() {
         if (networkPSpec == null) {
-            networkPSpec = new ArrayList<PropertySpec>();
-            // Create Property Spec
-            PropertySpec propertySpec = new PropertySpec();
-            propertySpec.setAll(Boolean.TRUE);
-            propertySpec.setType("Network");
-            networkPSpec.add(propertySpec);
+            networkPSpec = VsphereTraversalSpec.createPropertySpec(networkPSpec, "Network", true);
         }
         return networkPSpec;
     }

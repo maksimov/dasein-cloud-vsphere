@@ -97,7 +97,7 @@ public class HardDiskCapabilities extends AbstractCapabilities<Vsphere> implemen
 
     @Override
     public @Nonnull Requirement getDeviceIdOnAttachRequirement() throws InternalException, CloudException {
-        return Requirement.NONE; // TODO: find out
+        return Requirement.REQUIRED; // TODO: find out
     }
 
     @Override
