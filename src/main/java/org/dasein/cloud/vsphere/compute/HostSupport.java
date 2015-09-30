@@ -54,21 +54,8 @@ public class HostSupport extends AbstractAffinityGroupSupport<Vsphere> {
 
     public List<PropertySpec> getHostPSpec() {
         if (hostPSpec == null) {
-            hostPSpec = new ArrayList<PropertySpec>();
-            // Create Property Spec
-            PropertySpec propertySpec = new PropertySpec();
-            propertySpec.setAll(Boolean.FALSE);
-            propertySpec.getPathSet().add("name");
-            propertySpec.getPathSet().add("overallStatus");
-            propertySpec.setType("HostSystem");
-            hostPSpec.add(propertySpec);
-
-            // Create Property Spec
-            PropertySpec propertySpec2 = new PropertySpec();
-            propertySpec2.setAll(Boolean.FALSE);
-            propertySpec2.getPathSet().add("host");
-            propertySpec2.setType("ClusterComputeResource");
-            hostPSpec.add(propertySpec2);
+            hostPSpec = VsphereTraversalSpec.createPropertySpec(hostPSpec, "HostSystem", false, "name", "overallStatus");
+            hostPSpec = VsphereTraversalSpec.createPropertySpec(hostPSpec, "ClusterComputeResource", false, "host");
         }
         return hostPSpec;
     }

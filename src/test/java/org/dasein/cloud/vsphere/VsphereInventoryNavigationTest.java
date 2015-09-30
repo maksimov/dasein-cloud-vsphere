@@ -1,7 +1,6 @@
 package org.dasein.cloud.vsphere;
 
 import com.vmware.vim25.PropertySpec;
-import com.vmware.vim25.SelectionSpec;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.junit.Before;
