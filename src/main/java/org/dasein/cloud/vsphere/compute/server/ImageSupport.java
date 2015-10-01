@@ -2,10 +2,8 @@ package org.dasein.cloud.vsphere.compute.server;
 
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -25,6 +23,7 @@ import org.dasein.cloud.compute.MachineImageState;
 import org.dasein.cloud.compute.Platform;
 import org.dasein.cloud.vsphere.Vsphere;
 import org.dasein.cloud.vsphere.VsphereConnection;
+import org.dasein.cloud.vsphere.VsphereMethod;
 import org.dasein.cloud.vsphere.VsphereTraversalSpec;
 import org.dasein.cloud.vsphere.capabilities.VsphereImageCapabilities;
 
@@ -39,11 +38,12 @@ import com.vmware.vim25.RetrieveResult;
 import com.vmware.vim25.RuntimeFaultFaultMsg;
 import com.vmware.vim25.SelectionSpec;
 import com.vmware.vim25.ServiceContent;
-import com.vmware.vim25.VimFaultFaultMsg;
 import com.vmware.vim25.VimPortType;
 import com.vmware.vim25.VirtualMachineConfigSummary;
 
 import org.dasein.cloud.util.APITrace;
+import org.dasein.util.uom.time.Second;
+import org.dasein.util.uom.time.TimePeriod;
 
 
 /**
@@ -85,14 +85,12 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
         ManagedObjectReference viewManager = serviceContent.getViewManager();
         ManagedObjectReference rootFolder = serviceContent.getRootFolder();
 
-        List<String> vmList = new ArrayList<String>();
-        vmList.add("VirtualMachine");
-        ManagedObjectReference cViewRef = vimPort.createContainerView(viewManager, rootFolder, vmList, true);
+        ManagedObjectReference cViewRef = vimPort.createContainerView(viewManager, rootFolder, Collections.singletonList("VirtualMachine"), true);
 
         VsphereTraversalSpec vsphereTraversalSpec 
             = new VsphereTraversalSpec("traverseEntities", "view", "ContainerView", false)
         .withObjectSpec(cViewRef, false)
-        .withPropertySpec("VirtualMachine", "summary.config", "summary.overallStatus");
+        .withPropertySpec("VirtualMachine", "summary.config", "summary.overallStatus").finalizeTraversalSpec();
         return vsphereTraversalSpec.getPropertyFilterSpecList();
 
     }
@@ -255,7 +253,6 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
 
     @Override
     public void remove(String providerImageId, boolean checkState) throws CloudException, InternalException {
-        // TODO Auto-generated method stub
         APITrace.begin(getProvider(), "ImageSupport.remove");
 
         //String name = "rogerDeleteTest";
@@ -264,16 +261,12 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
         VimPortType vimPort = vsphereConnection.getVimPort();
         ServiceContent serviceContent = vsphereConnection.getServiceContent();
         try {
-            ManagedObjectReference viewManager = serviceContent.getViewManager();
-            ManagedObjectReference rootFolder = serviceContent.getRootFolder();
-
-            List<String> vmList = new ArrayList<String>();
-            vmList.add("VirtualMachine");
-            ManagedObjectReference cViewRef = vimPort.createContainerView(viewManager, rootFolder, vmList, true);
-
             VsphereTraversalSpec vsphereTraversalSpec = new VsphereTraversalSpec("traverseEntities", "view", "ContainerView", false)
-                .withObjectSpec(cViewRef, false)
-                .withPropertySpec("VirtualMachine", "summary.config");
+                .withObjectSpec(vimPort.createContainerView(serviceContent.getViewManager(),
+                                                            serviceContent.getRootFolder(),
+                                                            Collections.singletonList("VirtualMachine"),
+                                                            true), false)
+                .withPropertySpec("VirtualMachine", "summary.config").finalizeTraversalSpec();
 
             RetrieveResult props = null;
             try {
@@ -283,30 +276,21 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
             }
 
             for (ObjectContent oc : props.getObjects()) {
-                ManagedObjectReference mor = oc.getObj();
-                List<DynamicProperty> dps = oc.getPropSet();
-                VirtualMachineConfigSummary virtualMachineConfigSummary = null;
-                if (dps != null) {
-                     for (DynamicProperty dp : dps) {
-                         if (dp.getName().equals("summary.config")) {
-                             virtualMachineConfigSummary = (VirtualMachineConfigSummary) dp.getVal();
-                         }
-                     }
-                }
-                System.out.println("INSPECT " + virtualMachineConfigSummary.getName() + virtualMachineConfigSummary.isTemplate());
-                if (providerImageId.equals(virtualMachineConfigSummary.getName())) {
-                    ManagedObjectReference taskmor = vimPort.destroyTask(mor);
-                    System.out.println("INSPECT");
+                ManagedObjectReference templateToBeDeleted = oc.getObj();
 
-                    // use taskmor be used to verify operation completed.
-                }
+                DynamicProperty dp = (DynamicProperty)(oc.getPropSet().iterator().next());
+                VirtualMachineConfigSummary virtualMachineConfigSummary = (VirtualMachineConfigSummary)dp.getVal();
 
+                if (providerImageId.equals(virtualMachineConfigSummary.getName()) && virtualMachineConfigSummary.isTemplate()) {
+                    ManagedObjectReference taskmor = vimPort.destroyTask(templateToBeDeleted);
+                    VsphereMethod method = new VsphereMethod(provider);
+                    TimePeriod interval = new TimePeriod<Second>(15, TimePeriod.SECOND);
+                    method.getOperationComplete(taskmor, interval);
+                    method.waitOperationComplete(taskmor);
+                    break;
+                }
             }
-        } catch ( RuntimeFaultFaultMsg e ) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }  catch ( VimFaultFaultMsg e ) {
-            // TODO Auto-generated catch block
+        } catch ( Exception e ) {
             e.printStackTrace();
         } finally {
             APITrace.end();

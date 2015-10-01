@@ -103,8 +103,9 @@ public class VsphereTraversalSpec {
     public List<PropertyFilterSpec> getPropertyFilterSpecList() {
         return fSpecList;
     }
-    
-    public void setPropertyFilterSpecList() {
+
+    public VsphereTraversalSpec finalizeTraversalSpec() {
         fSpecList.add(fSpec);
+        return this;
     }
 }

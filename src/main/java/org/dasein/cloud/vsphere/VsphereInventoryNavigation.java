@@ -46,7 +46,7 @@ public class VsphereInventoryNavigation {
         traversalSpec = traversalSpec.withObjectSpec(rootFolder, true)
                 .withPropertySpec(pSpecs);
 
-        traversalSpec.setPropertyFilterSpecList();
+        traversalSpec.finalizeTraversalSpec();
 
         ServiceContent vimServiceContent = null;
         try {
