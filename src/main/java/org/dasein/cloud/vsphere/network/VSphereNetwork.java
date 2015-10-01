@@ -29,7 +29,7 @@ import java.util.Locale;
  */
 public class VSphereNetwork extends AbstractVLANSupport {
     private Vsphere provider;
-    public List<PropertySpec> networkPSpec;
+    private List<PropertySpec> networkPSpec;
     static private final Logger log = Vsphere.getLogger(VSphereNetwork.class);
 
     public VSphereNetwork(Vsphere provider) {
