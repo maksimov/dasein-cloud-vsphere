@@ -42,8 +42,6 @@ import com.vmware.vim25.VimPortType;
 import com.vmware.vim25.VirtualMachineConfigSummary;
 
 import org.dasein.cloud.util.APITrace;
-import org.dasein.util.uom.time.Hour;
-import org.dasein.util.uom.time.Minute;
 import org.dasein.util.uom.time.Second;
 import org.dasein.util.uom.time.TimePeriod;
 
@@ -286,8 +284,8 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
                 if (providerImageId.equals(virtualMachineConfigSummary.getName()) && virtualMachineConfigSummary.isTemplate()) {
                     ManagedObjectReference taskmor = vimPort.destroyTask(templateToBeDeleted);
                     VsphereMethod method = new VsphereMethod(provider);
-                    TimePeriod interval = new TimePeriod<Minute>(1, TimePeriod.MINUTE);
-                    method.getOperationComplete(taskmor, interval, 10);
+                    TimePeriod<Second> interval = new TimePeriod<Second>(5, TimePeriod.SECOND);
+                    method.getOperationComplete(taskmor, interval, 20);
                     break;
                 }
             }
