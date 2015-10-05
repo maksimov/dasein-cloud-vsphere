@@ -255,8 +255,6 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
     public void remove(String providerImageId, boolean checkState) throws CloudException, InternalException {
         APITrace.begin(getProvider(), "ImageSupport.remove");
 
-        //String name = "rogerDeleteTest";
-
         VsphereConnection vsphereConnection = provider.getServiceInstance();
         VimPortType vimPort = vsphereConnection.getVimPort();
         ServiceContent serviceContent = vsphereConnection.getServiceContent();
@@ -290,7 +288,7 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
                 }
             }
         } catch ( Exception e ) {
-            e.printStackTrace();
+            throw new CloudException(e);
         } finally {
             APITrace.end();
         }
