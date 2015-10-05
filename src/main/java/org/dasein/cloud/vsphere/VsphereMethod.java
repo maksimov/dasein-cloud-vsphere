@@ -21,27 +21,37 @@ public class VsphereMethod {
 
     private PropertyChange taskResult;
     private PropertyChange taskState;
+    private PropertyChange taskError;
 
     public VsphereMethod(@Nonnull Vsphere provider) {
         this.provider = provider;
     }
 
     public @Nonnull boolean getOperationComplete(ManagedObjectReference taskmor, TimePeriod interval, int repetions) throws CloudException, InternalException {
+        APITrace.begin(provider, "VsphereMethod.getOperationComplete");
         Long intervalSeconds = ((TimePeriod<Second>)interval.convertTo(TimePeriod.SECOND)).longValue();
-
-        for (int iteration = 0; iteration < repetions; iteration++) {
-            try { Thread.sleep(1000 * intervalSeconds); }
-            catch( InterruptedException e ) { }
-            if (getOperationCurrentStatus(taskmor)) {
-                return true;
+        try {
+            for (int iteration = 0; iteration < repetions; iteration++) {
+                if (getOperationCurrentStatus(taskmor)) {
+                    return true;
+                }
+                try { Thread.sleep(1000 * intervalSeconds); }
+                catch( InterruptedException e ) { }
             }
-        }
 
-        return false;
+            return false;
+        } finally {
+            APITrace.end();
+        }
     }
 
     public @Nonnull boolean getOperationCurrentStatus(ManagedObjectReference taskmor) throws CloudException, InternalException {
-        APITrace.begin(provider, "ImageSupport.waitOperationComplete");
+        APITrace.begin(provider, "VsphereMethod.getOperationCurrentStatus");
+
+        String version = "";
+        List<PropertyFilterUpdate> filtupary = null;
+        List<ObjectUpdate> objupary = null;
+
         VsphereConnection vsphereConnection = provider.getServiceInstance();
         VimPortType vimPort = vsphereConnection.getVimPort();
         ServiceContent serviceContent = vsphereConnection.getServiceContent();
@@ -53,56 +63,54 @@ public class VsphereMethod {
         spec.getObjectSet().add(oSpec);
 
         PropertySpec pSpec = new PropertySpec();
-        pSpec.getPathSet().addAll(Arrays.asList("info.state", "info.error"));
+        pSpec.getPathSet().addAll(Arrays.asList("info.state", "info.error", "info.result"));
         pSpec.setType(taskmor.getType());
         spec.getPropSet().add(pSpec);
+
         ManagedObjectReference filterSpecRef = null;
         try {
             filterSpecRef = vimPort.createFilter(serviceContent.getPropertyCollector(), spec, true);
-            UpdateSet updateset = vimPort.waitForUpdatesEx(serviceContent.getPropertyCollector(), "", new WaitOptions());
+            UpdateSet updateset = vimPort.waitForUpdatesEx(serviceContent.getPropertyCollector(), version, new WaitOptions());
 
             if (updateset == null || updateset.getFilterSet() == null) {
                 return false;
             }
-
-            // Make this code more general purpose when PropCol changes later.
-            List<PropertyFilterUpdate> filtupary = updateset.getFilterSet();
+            version = updateset.getVersion();
+            filtupary = updateset.getFilterSet();
 
             for (PropertyFilterUpdate filtup : filtupary) {
-                List<ObjectUpdate> objupary = filtup.getObjectSet();
-                for (ObjectUpdate objup : objupary) { // <-- contains TaskInfoState
-
-                    System.out.println("val3 = " + objup.getChangeSet().get(1).getVal());
-                    if (objup.getChangeSet().get(1).getVal().toString().equals("SUCCESS")) {
-                        System.out.println("returning true");
-                        return true;
+                objupary = filtup.getObjectSet();
+                for (ObjectUpdate objup : objupary) {
+                    if (objup.getKind() == ObjectUpdateKind.MODIFY || objup.getKind() == ObjectUpdateKind.ENTER || objup.getKind() == ObjectUpdateKind.LEAVE) {
+                        for (PropertyChange propchg : objup.getChangeSet()) {
+                            if (propchg.getName().equals("info.result")) {
+                                setTaskResult(propchg);
+                            } else if (propchg.getName().equals("info.state")) {
+                                setTaskState(propchg);
+                            } else if (propchg.getName().equals("info.error")) {
+                                setTaskError(propchg);
+                            }
+                        }
                     }
                 }
-
             }
-
-
-            
-        } catch ( InvalidPropertyFaultMsg e ) {
-            throw new CloudException(e);
-        } catch ( RuntimeFaultFaultMsg e ) {
-            throw new CloudException(e);
-        } catch ( InvalidCollectorVersionFaultMsg e ) {
+        } catch (Exception e) {
             throw new CloudException(e);
         } finally {
-            // Destroy the filter when we are done.
             try {
                 vimPort.destroyPropertyFilter(filterSpecRef);
-            } catch ( RuntimeFaultFaultMsg e ) {
+            } catch (Exception e) {
                 throw new CloudException(e);
             }
             APITrace.end();
         }
+        if ((null != taskState) && (taskState.getVal().equals(TaskInfoState.SUCCESS))) {
+            return true;
+        }
         return false;
-
     }
-    
-    // migrate and clean this into getOperationComplete()
+
+    @Deprecated
     public void waitOperationComplete(ManagedObjectReference taskmor) throws CloudException, InternalException {
         APITrace.begin(provider, "VsphereMethod.waitOperationComplete");
         VsphereConnection vsphereConnection = provider.getServiceInstance();
@@ -126,8 +134,7 @@ public class VsphereMethod {
         pSpec.setType(taskmor.getType());
         spec.getPropSet().add(pSpec);
         ManagedObjectReference filterSpecRef = null;
-        
-        
+
         int x = 10;
         try {
             while (x-- > 0) {
@@ -138,16 +145,14 @@ public class VsphereMethod {
                     continue;
                 }
                 version = updateset.getVersion();
-
                 // Make this code more general purpose when PropCol changes later.
                 filtupary = updateset.getFilterSet();
 
                 for (PropertyFilterUpdate filtup : filtupary) {
                     objupary = filtup.getObjectSet();
-                    for (ObjectUpdate objup : objupary) { // <-- contains TaskInfoState
+                    for (ObjectUpdate objup : objupary) {
                         Object val = objup.getChangeSet().iterator().next().getVal();
-                        val = objup.getChangeSet().iterator().next().getVal();
-                        // TODO: Handle all "kind"s of updates.
+
                         if (objup.getKind() == ObjectUpdateKind.MODIFY || objup.getKind() == ObjectUpdateKind.ENTER || objup.getKind() == ObjectUpdateKind.LEAVE) {
 
                             for (PropertyChange propchg : objup.getChangeSet()) {
@@ -166,18 +171,9 @@ public class VsphereMethod {
                     break;
                 }
             }
-            // Destroy the filter when we are done.
-
             vimPort.destroyPropertyFilter(filterSpecRef);
-        } catch ( InvalidPropertyFaultMsg e ) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch ( RuntimeFaultFaultMsg e ) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch ( InvalidCollectorVersionFaultMsg e ) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        } catch (Exception e) {
+            throw new CloudException(e);
         } finally {
             APITrace.end();
         }
@@ -197,5 +193,13 @@ public class VsphereMethod {
 
     public void setTaskState(PropertyChange taskState) {
         this.taskState = taskState;
+    }
+
+    public PropertyChange getTaskError() {
+        return taskError;
+    }
+
+    public void setTaskError(PropertyChange taskError) {
+        this.taskError = taskError;
     }
 }
