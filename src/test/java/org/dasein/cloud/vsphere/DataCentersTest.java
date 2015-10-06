@@ -57,7 +57,6 @@ public class DataCentersTest extends VsphereTestBase{
     private List<PropertySpec> dcPSpecs = null;
     private List<SelectionSpec> rpSSpecs = null;
     private List<PropertySpec> rpPSpecs = null;
-    private List<SelectionSpec> spSSpecs = null;
     private List<PropertySpec> spPSpecs = null;
     private List<PropertySpec> vfPSpecs = null;
     private List<PropertySpec> invalidProps = null;
@@ -80,7 +79,6 @@ public class DataCentersTest extends VsphereTestBase{
         dcPSpecs = dc.getDataCenterPropertySpec();
         rpSSpecs = dc.getResourcePoolSelectionSpec();
         rpPSpecs = dc.getResourcePoolPropertySpec();
-        spSSpecs = dc.getStoragePoolSelectionSpec();
         spPSpecs = dc.getStoragePoolPropertySpec();
         vfPSpecs = dc.getVmFolderPropertySpec();
 
@@ -648,7 +646,7 @@ public class DataCentersTest extends VsphereTestBase{
         spCache.clear();
 
         new Expectations(DataCenters.class) {
-            { dc.retrieveObjectList(vsphereMock, anyString, spSSpecs, spPSpecs);
+            { dc.retrieveObjectList(vsphereMock, "datastoreFolder", null, spPSpecs);
                 result = storagePools;
                 times=1;
             }
@@ -677,7 +675,7 @@ public class DataCentersTest extends VsphereTestBase{
     @Test
     public void getStoragePool() throws CloudException, InternalException{
         new NonStrictExpectations(DataCenters.class) {
-            { dc.retrieveObjectList(vsphereMock, anyString, spSSpecs, spPSpecs);
+            { dc.retrieveObjectList(vsphereMock, "datastoreFolder", null, spPSpecs);
                 result = storagePools;
             }
         };
@@ -696,7 +694,7 @@ public class DataCentersTest extends VsphereTestBase{
     @Test
     public void getFakeStoragePoolShouldReturnNull() throws CloudException, InternalException{
         new NonStrictExpectations(DataCenters.class) {
-            { dc.retrieveObjectList(vsphereMock, anyString, spSSpecs, spPSpecs);
+            { dc.retrieveObjectList(vsphereMock, "datastoreFolder", null, spPSpecs);
                 result = storagePools;
             }
         };
@@ -710,7 +708,7 @@ public class DataCentersTest extends VsphereTestBase{
         spCache.clear();
 
         new Expectations(DataCenters.class) {
-            { dc.retrieveObjectList(vsphereMock, anyString, spSSpecs, spPSpecs);
+            { dc.retrieveObjectList(vsphereMock, "datastoreFolder", null, spPSpecs);
                 result = storagePools;
                 times=1;
             }
@@ -793,7 +791,7 @@ public class DataCentersTest extends VsphereTestBase{
         spCache.clear(); //force regeneration of storage pool list
 
         new Expectations(DataCenters.class) {
-            { dc.retrieveObjectList(vsphereMock, anyString, spSSpecs, spPSpecs);
+            { dc.retrieveObjectList(vsphereMock, "datastoreFolder", null, spPSpecs);
                 result = storagePools;
                 times=1;
             }
@@ -812,7 +810,7 @@ public class DataCentersTest extends VsphereTestBase{
         spCache.clear();
 
         new Expectations(DataCenters.class) {
-            { dc.retrieveObjectList(vsphereMock, anyString, spSSpecs, spPSpecs);
+            { dc.retrieveObjectList(vsphereMock, "datastoreFolder", null, spPSpecs);
                 result = storagePools;
                 minTimes=0; //may or may not already be cached
             }
@@ -840,7 +838,7 @@ public class DataCentersTest extends VsphereTestBase{
         vfCache.clear();
 
         new Expectations(DataCenters.class) {
-            { dc.retrieveObjectList(vsphereMock, anyString, null, vfPSpecs);
+            { dc.retrieveObjectList(vsphereMock, "vmFolder", null, vfPSpecs);
                 result = vmFolders;
                 times=1;
             }
@@ -866,7 +864,7 @@ public class DataCentersTest extends VsphereTestBase{
     @Test
     public void getVmFolder() throws CloudException, InternalException{
         new NonStrictExpectations(DataCenters.class) {
-            { dc.retrieveObjectList(vsphereMock, anyString, null, vfPSpecs);
+            { dc.retrieveObjectList(vsphereMock, "vmFolder", null, vfPSpecs);
                 result = vmFolders;
             }
         };
@@ -883,7 +881,7 @@ public class DataCentersTest extends VsphereTestBase{
     @Test
     public void getFakeVmFolderShouldReturnNull() throws CloudException, InternalException{
         new NonStrictExpectations(DataCenters.class) {
-            { dc.retrieveObjectList(vsphereMock, anyString, null, vfPSpecs);
+            { dc.retrieveObjectList(vsphereMock, "vmFolder", null, vfPSpecs);
                 result = vmFolders;
             }
         };
@@ -898,7 +896,7 @@ public class DataCentersTest extends VsphereTestBase{
 
         new Expectations(DataCenters.class) {
             {
-                dc.retrieveObjectList(vsphereMock, anyString, null, vfPSpecs);
+                dc.retrieveObjectList(vsphereMock, "vmFolder", null, vfPSpecs);
                 result = vmFolders;
                 times=1;
             }

@@ -5,6 +5,7 @@ import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.compute.*;
+import org.dasein.cloud.dc.Region;
 import org.dasein.cloud.dc.ResourcePool;
 import org.dasein.cloud.dc.StoragePool;
 import org.dasein.cloud.util.APITrace;
@@ -203,10 +204,9 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
             }
 
             // get .vmdk files
-            List<SelectionSpec> selectionSpecsArr = dc.getStoragePoolSelectionSpec();
             List<PropertySpec> spPSpecs = getStoragePoolPropertySpec();
 
-            RetrieveResult spListobcont = retrieveObjectList(provider, "hostFolder", selectionSpecsArr, spPSpecs);
+            RetrieveResult spListobcont = retrieveObjectList(provider, "datastoreFolder", null, spPSpecs);
 
             if (spListobcont != null) {
                 for (ObjectContent oc : spListobcont.getObjects()) {
@@ -292,31 +292,25 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
             Volume volume = null;
             Iterable<Volume> volumes = listVolumes();
             for (Volume v : volumes) {
-                if (v.getProviderVirtualMachineId() != null) {
-                    if (v.getProviderVolumeId().equals(volumeId)) {
+                if (v.getProviderVolumeId().equals(volumeId)) {
+                    if (v.getProviderVirtualMachineId() != null) {
                         throw new CloudException("Volume is attached to vm " + v.getProviderVirtualMachineId() + " - removing not allowed");
                     }
+                    volume = v;
+                    break;
                 }
             }
 
-            volume = getVolume(volumeId);
-            ManagedObjectReference datacenter = null;
             if (volume != null) {
-                List<PropertySpec> regionPSpec = dc.getRegionPropertySpec();
-                RetrieveResult regList = retrieveObjectList(provider, "hostFolder", null, regionPSpec);
-                if (regList != null) {
-                    for (ObjectContent oc : regList.getObjects()) {
-                        ManagedObjectReference regRef = oc.getObj();
-                        String regId = regRef.getValue();
-                        if (regId.equals(volume.getProviderRegionId())) {
-                            datacenter = regRef;
-                            break;
-                        }
-                    }
-                }
                 VsphereConnection vsphereConnection = provider.getServiceInstance();
                 ManagedObjectReference fileManager = vsphereConnection.getServiceContent().getFileManager();
+                ManagedObjectReference searchIndex = vsphereConnection.getServiceContent().getSearchIndex();
                 VimPortType vimPortType = vsphereConnection.getVimPort();
+                Region r = dc.getRegion(volume.getProviderRegionId());
+                String regionName = r.getName();
+                String pathToDC = "/"+regionName;
+
+                ManagedObjectReference datacenter = vimPortType.findByInventoryPath(searchIndex, pathToDC);
 
                 if (datacenter != null) {
                     String filePath = volume.getTag("filePath");

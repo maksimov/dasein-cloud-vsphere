@@ -118,21 +118,6 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
         return rpPSpecs;
     }
 
-    public List<SelectionSpec> getStoragePoolSelectionSpec() {
-        if (spSSpecs == null) {
-            spSSpecs = new ArrayList<SelectionSpec>();
-            // DC -> DS
-            TraversalSpec dcToDs = new TraversalSpec();
-            dcToDs.setType("Datacenter");
-            dcToDs.setPath("datastore");
-            dcToDs.setName("dcToDs");
-            dcToDs.setSkip(Boolean.FALSE);
-
-            spSSpecs.add(dcToDs);
-        }
-        return spSSpecs;
-    }
-
     public List<PropertySpec> getStoragePoolPropertySpec() {
         spPSpecs = VsphereTraversalSpec.createPropertySpec(spPSpecs, "Datastore", false, "summary", "host");
         return spPSpecs;
@@ -365,11 +350,9 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
                 return storagePools;
             }
             storagePools = new ArrayList<StoragePool>();
-
-            List<SelectionSpec> selectionSpecsArr = getStoragePoolSelectionSpec();
             List<PropertySpec> pSpecs = getStoragePoolPropertySpec();
 
-            RetrieveResult listobcont = retrieveObjectList(provider, "hostFolder", selectionSpecsArr, pSpecs);
+            RetrieveResult listobcont = retrieveObjectList(provider, "datastoreFolder", null, pSpecs);
 
             if (listobcont != null) {
                 Iterable<AffinityGroup> allHosts = agSupport.list(AffinityGroupFilterOptions.getInstance());
