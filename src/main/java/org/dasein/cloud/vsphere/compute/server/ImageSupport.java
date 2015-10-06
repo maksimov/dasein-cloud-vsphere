@@ -27,10 +27,17 @@ import org.dasein.cloud.vsphere.VsphereMethod;
 import org.dasein.cloud.vsphere.VsphereTraversalSpec;
 import org.dasein.cloud.vsphere.capabilities.VsphereImageCapabilities;
 
+import com.vmware.vim25.CustomizationFaultFaultMsg;
+import com.vmware.vim25.CustomizationSpec;
 import com.vmware.vim25.DynamicProperty;
+import com.vmware.vim25.FileFaultFaultMsg;
+import com.vmware.vim25.InsufficientResourcesFaultFaultMsg;
+import com.vmware.vim25.InvalidDatastoreFaultMsg;
 import com.vmware.vim25.InvalidPropertyFaultMsg;
+import com.vmware.vim25.InvalidStateFaultMsg;
 import com.vmware.vim25.ManagedEntityStatus;
 import com.vmware.vim25.ManagedObjectReference;
+import com.vmware.vim25.MigrationFaultFaultMsg;
 import com.vmware.vim25.ObjectContent;
 import com.vmware.vim25.PropertyFilterSpec;
 import com.vmware.vim25.RetrieveOptions;
@@ -38,8 +45,13 @@ import com.vmware.vim25.RetrieveResult;
 import com.vmware.vim25.RuntimeFaultFaultMsg;
 import com.vmware.vim25.SelectionSpec;
 import com.vmware.vim25.ServiceContent;
+import com.vmware.vim25.TaskInProgressFaultMsg;
 import com.vmware.vim25.VimPortType;
+import com.vmware.vim25.VirtualMachineCloneSpec;
+import com.vmware.vim25.VirtualMachineConfigSpec;
 import com.vmware.vim25.VirtualMachineConfigSummary;
+import com.vmware.vim25.VirtualMachineRelocateSpec;
+import com.vmware.vim25.VmConfigFaultFaultMsg;
 
 import org.dasein.cloud.util.APITrace;
 import org.dasein.util.uom.time.Second;
@@ -200,20 +212,66 @@ public class ImageSupport extends AbstractImageSupport<Vsphere> {
         return null;
     }
 
+    // WIP - not yet working.
     @Override
-    public @Nonnull String copyImage( @Nonnull ImageCopyOptions options ) throws CloudException, InternalException {
+    public @Nonnull String copyImage(@Nonnull ImageCopyOptions options) throws CloudException, InternalException {
         // TODO Auto-generated method stub - copy template to template
         APITrace.begin(getProvider(), "ImageSupport.listImages");
+
+        // INPUTS
+        options.getDescription(); // <- description for clone.
+        
+        
 
         VsphereConnection vsphereConnection = provider.getServiceInstance();
         VimPortType vimPort = vsphereConnection.getVimPort();
         ServiceContent serviceContent = vsphereConnection.getServiceContent();
-        try {
 
+        try {
+            // VMClone.java
+
+            VirtualMachineCloneSpec cloneSpec = new VirtualMachineCloneSpec();
+            VirtualMachineRelocateSpec relocSpec = new VirtualMachineRelocateSpec();
+            ManagedObjectReference arg0 = null;
+            relocSpec.setPool(arg0);
+            relocSpec.setHost(arg0);
+            relocSpec.setFolder(arg0);
+            relocSpec.setDatastore(arg0);
+                cloneSpec.setLocation(relocSpec);
+                cloneSpec.setPowerOn(false);
+                cloneSpec.setTemplate(true);
+                    //VirtualMachineConfigSpec virtualMachineConfigSpec = new VirtualMachineConfigSpec();
+                    //--nothing here unless you want to change the template vm requirements...
+                    //cloneSpec.setConfig(virtualMachineConfigSpec);
+                    //CustomizationSpec customizationSpec = new CustomizationSpec();
+                    //-- cant set description here...
+                    //cloneSpec.setCustomization(customizationSpec);
+            ManagedObjectReference datacenterRef = vimPort.findByInventoryPath(serviceContent.getSearchIndex(), options.getTargetRegionId());
+
+
+
+
+            //TODO check DM code for something to return a folder ref
+            ManagedObjectReference vmFolderRef = null; //getDynamicProperty(datacenterRef, "vmFolder");
+
+
+
+
+
+
+            String vmPathName = null; //options.getProviderImageId();options.getTargetRegionId(); // <- image to clone -- HOW TO CONVERT TO --> vmPathName
+
+            ManagedObjectReference vmRef = vimPort.findByInventoryPath(serviceContent.getSearchIndex(), vmPathName);
+            ManagedObjectReference cloneTask = vimPort.cloneVMTask(vmRef, vmFolderRef, options.getName(), cloneSpec);
+            VsphereMethod method = new VsphereMethod(provider);
+            TimePeriod<Second> interval = new TimePeriod<Second>(10, TimePeriod.SECOND);
+            method.getOperationComplete(cloneTask, interval, 20);
+        } catch ( Exception e ) {
+            throw new CloudException(e);
         } finally {
             APITrace.end();
         }
-        return null;
+        return options.getName();
     }
 
     SelectionSpec getSelectionSpec(String name) {
