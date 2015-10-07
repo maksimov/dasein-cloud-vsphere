@@ -7,10 +7,10 @@ import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.compute.AffinityGroup;
 import org.dasein.cloud.compute.AffinityGroupFilterOptions;
-import org.dasein.cloud.compute.AffinityGroupSupport;
 import org.dasein.cloud.dc.*;
 import org.dasein.cloud.util.Cache;
 import org.dasein.cloud.util.CacheLevel;
+import org.dasein.cloud.vsphere.compute.HostSupport;
 import org.dasein.cloud.vsphere.compute.VsphereCompute;
 import org.dasein.util.uom.time.Day;
 import org.dasein.util.uom.time.Hour;
@@ -69,7 +69,7 @@ public class DataCentersTest extends VsphereTestBase{
     @Mocked
     VsphereCompute vsphereComputeMock;
     @Mocked
-    AffinityGroupSupport vsphereAGMock;
+    HostSupport vsphereAGMock;
 
     @Before
     public void setUp() throws Exception {
