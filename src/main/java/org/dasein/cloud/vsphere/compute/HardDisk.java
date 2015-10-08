@@ -432,6 +432,11 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
     public Iterable<Volume> listVolumes() throws InternalException, CloudException {
         APITrace.begin(provider, "HardDisk.listVolumes");
         try {
+            VsphereConnection vsphereConnection = provider.getServiceInstance();
+            VimPortType vimPortType = vsphereConnection.getVimPort();
+            VsphereMethod method = new VsphereMethod(provider);
+            TimePeriod interval = new TimePeriod<Second>(15, TimePeriod.SECOND);
+
             List<Volume> list = new ArrayList<Volume>();
             List<String> fileNames = new ArrayList<String>();
             ProviderContext ctx = provider.getContext();
@@ -449,16 +454,24 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
             if (listobcont != null) {
                 Iterable<ResourcePool> rps = getAllResourcePoolsIncludingRoot();//return all resourcePools
                 List<ObjectContent> objectContents = listobcont.getObjects();
+                ManagedObjectReference mo;
+                String vmId;
+                String dataCenterId;
+                Platform guestOs;
+                List<DynamicProperty> dps;
+                List<Volume> tmpVolList;
+                List<String> tmpFileNames;
+                boolean skipObject;
                 for (ObjectContent oc : objectContents) {
-                    ManagedObjectReference mo = oc.getObj();
-                    String vmId = mo.getValue();
-                    String dataCenterId = null;
-                    Platform guestOs = null;
-                    List<DynamicProperty> dps = oc.getPropSet();
+                    mo = oc.getObj();
+                    vmId = mo.getValue();
+                    dataCenterId = null;
+                    guestOs = null;
+                    dps = oc.getPropSet();
                     if (dps != null) {
-                        List<Volume> tmpVolList = new ArrayList<Volume>();
-                        List<String> tmpFileNames = new ArrayList<String>();
-                        boolean skipObject = false;
+                        tmpVolList = new ArrayList<Volume>();
+                        tmpFileNames = new ArrayList<String>();
+                        skipObject = false;
                         for (DynamicProperty dp : dps) {
                             if (dp.getName().equals("runtime.powerState")) {
                                 VirtualMachinePowerState ps = (VirtualMachinePowerState) dp.getVal();
@@ -524,11 +537,15 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
 
             if (spListobcont != null) {
                 Iterable<StoragePool> pools = dc.listStoragePools();
+                String dataCenterId;
+                String dsName;
+                ManagedObjectReference hostDatastoreBrowser;
+                List<DynamicProperty> dps;
                 for (ObjectContent oc : spListobcont.getObjects()) {
-                    String dataCenterId = null;
-                    String dsName = null;
-                    ManagedObjectReference hostDatastoreBrowser = null;
-                    List<DynamicProperty> dps = oc.getPropSet();
+                    dataCenterId = null;
+                    dsName = null;
+                    hostDatastoreBrowser = null;
+                    dps = oc.getPropSet();
                     if (dps != null) {
                         for (DynamicProperty dp : dps) {
                             if (dp.getName().equals("summary.name")) {
@@ -545,14 +562,10 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
                             break;
                         }
                     }
-                    VsphereConnection vsphereConnection = provider.getServiceInstance();
-                    VimPortType vimPortType = vsphereConnection.getVimPort();
 
                     if (dsName != null && hostDatastoreBrowser != null) {
                         try {
                             ManagedObjectReference taskmor = vimPortType.searchDatastoreSubFoldersTask(hostDatastoreBrowser, "[" + dsName + "]", null);
-                            VsphereMethod method = new VsphereMethod(provider);
-                            TimePeriod interval = new TimePeriod<Second>(15, TimePeriod.SECOND);
                             if (method.getOperationComplete(taskmor, interval, 4)) {
                                 PropertyChange taskResult = method.getTaskResult();
                                 ArrayOfHostDatastoreBrowserSearchResults result = (ArrayOfHostDatastoreBrowserSearchResults) taskResult.getVal();
