@@ -36,7 +36,9 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
     private List<PropertySpec> spPSpecs;
     private DataCenters dc;
 
-    HardDisk(@Nonnull Vsphere provider) {
+    private ObjectManagement om = new ObjectManagement();
+
+    public HardDisk(@Nonnull Vsphere provider) {
         super(provider);
         this.provider = provider;
         dc = provider.getDataCenterServices();
@@ -45,6 +47,15 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
     public RetrieveResult retrieveObjectList(Vsphere provider, @Nonnull String baseFolder, @Nullable List<SelectionSpec> selectionSpecsArr, @Nonnull List<PropertySpec> pSpecs) throws InternalException, CloudException {
         VsphereInventoryNavigation nav = new VsphereInventoryNavigation();
         return nav.retrieveObjectList(provider, baseFolder, selectionSpecsArr, pSpecs);
+    }
+
+    public ManagedObjectReference searchDatastores(Vsphere provider, @Nonnull ManagedObjectReference hostDatastoreBrowser, @Nonnull String datastoreFolder, @Nullable HostDatastoreBrowserSearchSpec spec) throws InternalException, CloudException {
+        VsphereInventoryNavigation nav = new VsphereInventoryNavigation();
+        return nav.searchDatastores(provider, hostDatastoreBrowser, datastoreFolder, spec);
+    }
+
+    public Iterable<StoragePool> listStoragePools() throws CloudException, InternalException {
+        return dc.listStoragePools();
     }
 
     public List<PropertySpec> getHardDiskPSpec() {
@@ -87,7 +98,7 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
         return rpPSpecs;
     }
 
-    public List<PropertySpec> getStoragePoolPropertySpec() {
+    public List<PropertySpec> getDatastorePropertySpec() {
         spPSpecs = VsphereTraversalSpec.createPropertySpec(spPSpecs, "Datastore", false, "browser", "summary.name");
         return spPSpecs;
     }
@@ -432,8 +443,6 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
     public Iterable<Volume> listVolumes() throws InternalException, CloudException {
         APITrace.begin(provider, "HardDisk.listVolumes");
         try {
-            VsphereConnection vsphereConnection = provider.getServiceInstance();
-            VimPortType vimPortType = vsphereConnection.getVimPort();
             VsphereMethod method = new VsphereMethod(provider);
             TimePeriod interval = new TimePeriod<Second>(15, TimePeriod.SECOND);
 
@@ -531,17 +540,16 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
             }
 
             // get .vmdk files
-            List<PropertySpec> spPSpecs = getStoragePoolPropertySpec();
+            List<PropertySpec> dsPSpecs = getDatastorePropertySpec();
 
-            RetrieveResult spListobcont = retrieveObjectList(provider, "datastoreFolder", null, spPSpecs);
-
-            if (spListobcont != null) {
-                Iterable<StoragePool> pools = dc.listStoragePools();
+            RetrieveResult dsListobcont = retrieveObjectList(provider, "datastoreFolder", null, dsPSpecs);
+            if (dsListobcont != null) {
+                Iterable<StoragePool> pools = listStoragePools();
                 String dataCenterId;
                 String dsName;
                 ManagedObjectReference hostDatastoreBrowser;
                 List<DynamicProperty> dps;
-                for (ObjectContent oc : spListobcont.getObjects()) {
+                for (ObjectContent oc : dsListobcont.getObjects()) {
                     dataCenterId = null;
                     dsName = null;
                     hostDatastoreBrowser = null;
@@ -565,7 +573,7 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
 
                     if (dsName != null && hostDatastoreBrowser != null) {
                         try {
-                            ManagedObjectReference taskmor = vimPortType.searchDatastoreSubFoldersTask(hostDatastoreBrowser, "[" + dsName + "]", null);
+                            ManagedObjectReference taskmor = searchDatastores(provider, hostDatastoreBrowser, "[" + dsName + "]", null);
                             if (method.getOperationComplete(taskmor, interval, 4)) {
                                 PropertyChange taskResult = method.getTaskResult();
                                 ArrayOfHostDatastoreBrowserSearchResults result = (ArrayOfHostDatastoreBrowserSearchResults) taskResult.getVal();
@@ -581,6 +589,7 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
                                                     if (d != null) {
                                                         d.setTag("filePath", r.getFolderPath() + d.getProviderVolumeId());
                                                         list.add(d);
+                                                        fileNames.add(file.getPath());
                                                     }
                                                 }
                                             }
@@ -645,7 +654,7 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
     }
 
     @Nonnull
-    private List<ResourcePool> getAllResourcePoolsIncludingRoot() throws InternalException, CloudException {
+    public List<ResourcePool> getAllResourcePoolsIncludingRoot() throws InternalException, CloudException {
         try {
             List<ResourcePool> resourcePools = new ArrayList<ResourcePool>();
 

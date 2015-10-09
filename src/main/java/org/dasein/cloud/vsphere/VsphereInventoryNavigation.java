@@ -81,4 +81,17 @@ public class VsphereInventoryNavigation {
         return tSpec.getTraversalSpec();
     }
 
+    public ManagedObjectReference searchDatastores(Vsphere provider, @Nonnull ManagedObjectReference hostDatastoreBrowser, @Nonnull String datastoreFolder, @Nullable HostDatastoreBrowserSearchSpec searchSpec) throws CloudException, InternalException{
+        VsphereConnection vsphereConnection = provider.getServiceInstance();
+        VimPortType vimPortType = vsphereConnection.getVimPort();
+        try {
+            return vimPortType.searchDatastoreSubFoldersTask(hostDatastoreBrowser, datastoreFolder, searchSpec);
+        } catch (FileFaultFaultMsg fileFaultFaultMsg) {
+            throw new CloudException("FileFaultFaultMessage searching datastores", fileFaultFaultMsg);
+        } catch (InvalidDatastoreFaultMsg invalidDatastoreFaultMsg) {
+            throw new CloudException("InvalidDatastoreFaultMsg searching datastores", invalidDatastoreFaultMsg);
+        } catch (RuntimeFaultFaultMsg runtimeFaultFaultMsg) {
+            throw new CloudException("RuntimeFaultFaultMsg searching datastores", runtimeFaultFaultMsg);
+        }
+    }
 }
