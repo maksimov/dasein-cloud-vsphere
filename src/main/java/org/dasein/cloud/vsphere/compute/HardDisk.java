@@ -118,6 +118,9 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
                 }
 
                 Volume volume = getVolume(volumeId);
+                if (volume == null) {
+                    throw new CloudException("Unable to find volume with id "+volumeId);
+                }
 
                 List<VirtualDeviceConfigSpec> machineSpecs = null;
                 Object deviceObject = getVMProperty(props, toServer, "config.hardware.device");
@@ -176,14 +179,12 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
                 spec.getDeviceChange().addAll(machineSpecs);
 
                 CloudException lastError = null;
-                VsphereConnection vsphereConnection = provider.getServiceInstance();
-                VimPortType vimPort = vsphereConnection.getVimPort();
-                ManagedObjectReference taskmor = vimPort.reconfigVMTask(vmRef, spec);
+                ManagedObjectReference taskmor = vmSupport.reconfigVMTask(vmRef, spec);
 
                 VsphereMethod method = new VsphereMethod(provider);
                 TimePeriod interval = new TimePeriod<Second>(15, TimePeriod.SECOND);
 
-                if( !method.getOperationComplete(taskmor, interval, 4) ) {
+                if( taskmor != null && !method.getOperationComplete(taskmor, interval, 4) ) {
                     lastError = new CloudException("Failed to attach volume: " + method.getTaskError().getVal());
                 }
                 if( lastError != null ) {
@@ -284,9 +285,7 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
                     spec.getDeviceChange().addAll(machineSpecs);
 
                     CloudException lastError;
-                    VsphereConnection vsphereConnection = provider.getServiceInstance();
-                    VimPortType vimPort = vsphereConnection.getVimPort();
-                    ManagedObjectReference taskmor = vimPort.reconfigVMTask(vmRef, spec);
+                    ManagedObjectReference taskmor = vmSupport.reconfigVMTask(vmRef, spec);
 
                     VsphereMethod method = new VsphereMethod(provider);
                     TimePeriod interval = new TimePeriod<Second>(15, TimePeriod.SECOND);
@@ -398,9 +397,7 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
                         spec.getDeviceChange().addAll(machineSpecs);
 
                         CloudException lastError = null;
-                        VsphereConnection vsphereConnection = provider.getServiceInstance();
-                        VimPortType vimPort = vsphereConnection.getVimPort();
-                        ManagedObjectReference taskmor = vimPort.reconfigVMTask(vmRef, spec);
+                        ManagedObjectReference taskmor = vmSupport.reconfigVMTask(vmRef, spec);
 
                         VsphereMethod method = new VsphereMethod(provider);
                         TimePeriod interval = new TimePeriod<Second>(15, TimePeriod.SECOND);
@@ -574,22 +571,24 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
                     if (dsName != null && hostDatastoreBrowser != null) {
                         try {
                             ManagedObjectReference taskmor = searchDatastores(provider, hostDatastoreBrowser, "[" + dsName + "]", null);
-                            if (method.getOperationComplete(taskmor, interval, 4)) {
+                            if (taskmor != null && method.getOperationComplete(taskmor, interval, 4)) {
                                 PropertyChange taskResult = method.getTaskResult();
-                                ArrayOfHostDatastoreBrowserSearchResults result = (ArrayOfHostDatastoreBrowserSearchResults) taskResult.getVal();
-                                List<HostDatastoreBrowserSearchResults> res = result.getHostDatastoreBrowserSearchResults();
-                                for (HostDatastoreBrowserSearchResults r : res) {
-                                    List<FileInfo> files = r.getFile();
-                                    if (files != null) {
-                                        for (FileInfo file : files) {
-                                            String filePath = file.getPath();
-                                            if (filePath.endsWith(".vmdk") && !filePath.endsWith("-flat.vmdk")) {
-                                                if (!fileNames.contains(file.getPath())) {
-                                                    Volume d = toVolume(file, dataCenterId, ctx.getRegionId());
-                                                    if (d != null) {
-                                                        d.setTag("filePath", r.getFolderPath() + d.getProviderVolumeId());
-                                                        list.add(d);
-                                                        fileNames.add(file.getPath());
+                                if (taskResult != null && taskResult.getVal() != null) {
+                                    ArrayOfHostDatastoreBrowserSearchResults result = (ArrayOfHostDatastoreBrowserSearchResults) taskResult.getVal();
+                                    List<HostDatastoreBrowserSearchResults> res = result.getHostDatastoreBrowserSearchResults();
+                                    for (HostDatastoreBrowserSearchResults r : res) {
+                                        List<FileInfo> files = r.getFile();
+                                        if (files != null) {
+                                            for (FileInfo file : files) {
+                                                String filePath = file.getPath();
+                                                if (filePath.endsWith(".vmdk") && !filePath.endsWith("-flat.vmdk")) {
+                                                    if (!fileNames.contains(file.getPath())) {
+                                                        Volume d = toVolume(file, dataCenterId, ctx.getRegionId());
+                                                        if (d != null) {
+                                                            d.setTag("filePath", r.getFolderPath() + d.getProviderVolumeId());
+                                                            list.add(d);
+                                                            fileNames.add(file.getPath());
+                                                        }
                                                     }
                                                 }
                                             }
