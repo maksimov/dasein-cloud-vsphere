@@ -5,13 +5,17 @@ import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.compute.*;
+import org.dasein.cloud.dc.Region;
 import org.dasein.cloud.dc.ResourcePool;
 import org.dasein.cloud.dc.StoragePool;
 import org.dasein.cloud.util.APITrace;
 import org.dasein.cloud.vsphere.*;
 import org.dasein.cloud.vsphere.capabilities.HardDiskCapabilities;
+import org.dasein.util.CalendarWrapper;
 import org.dasein.util.uom.storage.Kilobyte;
 import org.dasein.util.uom.storage.Storage;
+import org.dasein.util.uom.time.Second;
+import org.dasein.util.uom.time.TimePeriod;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -32,7 +36,9 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
     private List<PropertySpec> spPSpecs;
     private DataCenters dc;
 
-    HardDisk(@Nonnull Vsphere provider) {
+    private ObjectManagement om = new ObjectManagement();
+
+    public HardDisk(@Nonnull Vsphere provider) {
         super(provider);
         this.provider = provider;
         dc = provider.getDataCenterServices();
@@ -43,9 +49,18 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
         return nav.retrieveObjectList(provider, baseFolder, selectionSpecsArr, pSpecs);
     }
 
+    public ManagedObjectReference searchDatastores(Vsphere provider, @Nonnull ManagedObjectReference hostDatastoreBrowser, @Nonnull String datastoreFolder, @Nullable HostDatastoreBrowserSearchSpec spec) throws InternalException, CloudException {
+        VsphereInventoryNavigation nav = new VsphereInventoryNavigation();
+        return nav.searchDatastores(provider, hostDatastoreBrowser, datastoreFolder, spec);
+    }
+
+    public Iterable<StoragePool> listStoragePools() throws CloudException, InternalException {
+        return dc.listStoragePools();
+    }
+
     public List<PropertySpec> getHardDiskPSpec() {
         if (hardDiskPSpecs == null) {
-            hardDiskPSpecs = VsphereTraversalSpec.createPropertySpec(hardDiskPSpecs, "VirtualMachine", false, "runtime.powerState", "config.template", "config.guestFullName", "resourcePool", "config.hardware.device");
+            hardDiskPSpecs = VsphereTraversalSpec.createPropertySpec(hardDiskPSpecs, "VirtualMachine", false, "runtime.powerState", "config.template", "config.guestFullName", "resourcePool", "config.hardware.device", "datastore");
         }
         return hardDiskPSpecs;
     }
@@ -83,25 +98,332 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
         return rpPSpecs;
     }
 
-    public List<PropertySpec> getStoragePoolPropertySpec() {
+    public List<PropertySpec> getDatastorePropertySpec() {
         spPSpecs = VsphereTraversalSpec.createPropertySpec(spPSpecs, "Datastore", false, "browser", "summary.name");
         return spPSpecs;
     }
 
     @Override
     public void attach(@Nonnull String volumeId, @Nonnull String toServer, @Nonnull String deviceId) throws InternalException, CloudException {
-        super.attach(volumeId, toServer, deviceId);
+        APITrace.begin(provider, "HardDisk.attach");
+        try {
+            try {
+                Vm vmSupport = provider.getComputeServices().getVirtualMachineSupport();
+                VirtualMachine vm = vmSupport.getVirtualMachine(toServer);
+                List<PropertySpec> pSpecs = getHardDiskPSpec();
+                RetrieveResult props = retrieveObjectList(provider, "vmFolder", null, pSpecs);
+
+                if (vm == null) {
+                    throw new CloudException("Unable to find vm with id "+toServer);
+                }
+
+                Volume volume = getVolume(volumeId);
+                if (volume == null) {
+                    throw new CloudException("Unable to find volume with id "+volumeId);
+                }
+
+                List<VirtualDeviceConfigSpec> machineSpecs = null;
+                Object deviceObject = getVMProperty(props, toServer, "config.hardware.device");
+                ArrayOfVirtualDevice array = (ArrayOfVirtualDevice) deviceObject;
+                List<VirtualDevice> devices = array.getVirtualDevice();
+
+                Object vmMor = getVMProperty(props, toServer, "MOR");
+                ManagedObjectReference vmRef = (ManagedObjectReference) vmMor;
+
+                int cKey = 1000;
+                boolean scsiExists = false;
+                for (VirtualDevice device : devices) {
+                    if (device instanceof VirtualSCSIController) {
+                        if (!scsiExists) {
+                            cKey = device.getKey();
+                            scsiExists = true;
+                            break;
+                        }
+                    }
+                }
+
+                machineSpecs = new ArrayList<VirtualDeviceConfigSpec>();
+                if (!scsiExists) {
+                    VirtualDeviceConfigSpec scsiSpec =
+                            new VirtualDeviceConfigSpec();
+                    scsiSpec.setOperation(VirtualDeviceConfigSpecOperation.ADD);
+                    VirtualLsiLogicSASController scsiCtrl =
+                            new VirtualLsiLogicSASController();
+                    scsiCtrl.setKey(cKey);
+                    scsiCtrl.setBusNumber(0);
+                    scsiCtrl.setSharedBus(VirtualSCSISharing.NO_SHARING);
+                    scsiSpec.setDevice(scsiCtrl);
+                    machineSpecs.add(scsiSpec);
+                }
+
+                VirtualDisk disk = new VirtualDisk();
+
+                disk.setControllerKey(cKey);
+                disk.setUnitNumber(Integer.parseInt(deviceId));
+
+                VirtualDeviceConfigSpec diskSpec =
+                        new VirtualDeviceConfigSpec();
+                diskSpec.setOperation(VirtualDeviceConfigSpecOperation.ADD);
+                diskSpec.setDevice(disk);
+
+                VirtualDiskFlatVer2BackingInfo diskFileBacking = new VirtualDiskFlatVer2BackingInfo();
+                String fileName = volume.getTag("filePath");
+                diskFileBacking.setFileName(fileName);
+                diskFileBacking.setDiskMode("persistent");
+                diskFileBacking.setThinProvisioned(true);
+                disk.setBacking(diskFileBacking);
+
+                machineSpecs.add(diskSpec);
+
+                VirtualMachineConfigSpec spec = new VirtualMachineConfigSpec();
+                spec.getDeviceChange().addAll(machineSpecs);
+
+                CloudException lastError = null;
+                ManagedObjectReference taskmor = vmSupport.reconfigVMTask(vmRef, spec);
+
+                VsphereMethod method = new VsphereMethod(provider);
+                TimePeriod interval = new TimePeriod<Second>(15, TimePeriod.SECOND);
+
+                if( taskmor != null && !method.getOperationComplete(taskmor, interval, 4) ) {
+                    lastError = new CloudException("Failed to attach volume: " + method.getTaskError().getVal());
+                }
+                if( lastError != null ) {
+                    throw lastError;
+                }
+            }
+            catch (Exception e) {
+                throw new CloudException(e);
+            }
+        }
+        finally {
+            APITrace.end();
+        }
     }
 
     @Nonnull
     @Override
     public String createVolume(@Nonnull VolumeCreateOptions options) throws InternalException, CloudException {
-        return super.createVolume(options);
+        APITrace.begin(getProvider(), "HardDisk.createVolume");
+        try {
+            if (options.getProviderVirtualMachineId() == null) {
+                throw new CloudException("Volumes can only be created in the context of a vm for "+getProvider().getCloudName()+". ProviderVirtualMachineId cannot be null");
+            }
+            Vm vmSupport = provider.getComputeServices().getVirtualMachineSupport();
+            VirtualMachine vm = vmSupport.getVirtualMachine(options.getProviderVirtualMachineId());
+            List<PropertySpec> pSpecs = getHardDiskPSpec();
+            RetrieveResult props = retrieveObjectList(provider, "vmFolder", null, pSpecs);
+
+            if( vm != null ) {
+                try {
+                    List<VirtualDeviceConfigSpec> machineSpecs = null;
+                    Object deviceObject = getVMProperty(props, options.getProviderVirtualMachineId(), "config.hardware.device");
+                    ArrayOfVirtualDevice array = (ArrayOfVirtualDevice) deviceObject;
+                    List<VirtualDevice> devices = array.getVirtualDevice();
+
+                    Object datastoreObject = getVMProperty(props, options.getProviderVirtualMachineId(), "datastore");
+                    ArrayOfManagedObjectReference mors = (ArrayOfManagedObjectReference) datastoreObject;
+                    ManagedObjectReference datastore = mors.getManagedObjectReference().get(0);
+
+                    Object vmMor = getVMProperty(props, options.getProviderVirtualMachineId(), "MOR");
+                    ManagedObjectReference vmRef = (ManagedObjectReference) vmMor;
+
+                    String datastoreId = datastore.getValue();
+                    StoragePool sp = dc.getStoragePool(datastoreId);
+                    String datastoreName = sp.getStoragePoolName();
+
+                    int cKey = 1000;
+                    boolean scsiExists = false;
+                    int numDisks = 0;
+                    List<String> diskNames = new ArrayList<String>();
+                    for (VirtualDevice device : devices) {
+                        if (device instanceof VirtualSCSIController) {
+                            if (!scsiExists) {
+                                cKey = device.getKey();
+                                scsiExists = true;
+                            }
+                        }
+                        else if (device instanceof VirtualDisk) {
+                            numDisks++;
+                            VirtualDisk vDisk = (VirtualDisk) device;
+                            VirtualDiskFlatVer2BackingInfo bkInfo = (VirtualDiskFlatVer2BackingInfo) vDisk.getBacking();
+                            diskNames.add(bkInfo.getFileName());
+                        }
+                    }
+                    machineSpecs = new ArrayList<VirtualDeviceConfigSpec>();
+                    if (!scsiExists) {
+                        VirtualDeviceConfigSpec scsiSpec = new VirtualDeviceConfigSpec();
+                        scsiSpec.setOperation(VirtualDeviceConfigSpecOperation.ADD);
+                        VirtualLsiLogicSASController scsiCtrl = new VirtualLsiLogicSASController();
+                        scsiCtrl.setKey(cKey);
+                        scsiCtrl.setBusNumber(0);
+                        scsiCtrl.setSharedBus(VirtualSCSISharing.NO_SHARING);
+                        scsiSpec.setDevice(scsiCtrl);
+                        machineSpecs.add(scsiSpec);
+                    }
+                    // Associate the virtual disk with the scsi controller
+                    VirtualDisk disk = new VirtualDisk();
+
+                    disk.setControllerKey(cKey);
+                    disk.setUnitNumber(numDisks);
+                    disk.setCapacityInKB(options.getVolumeSize().intValue() * 1000000);
+
+                    VirtualDeviceConfigSpec diskSpec = new VirtualDeviceConfigSpec();
+                    diskSpec.setOperation(VirtualDeviceConfigSpecOperation.ADD);
+                    diskSpec.setFileOperation(VirtualDeviceConfigSpecFileOperation.CREATE);
+                    diskSpec.setDevice(disk);
+
+                    VirtualDiskFlatVer2BackingInfo diskFileBacking = new VirtualDiskFlatVer2BackingInfo();
+                    String fileName2 = "[" + datastoreName + "]" + vm.getName() + "/" + options.getName();
+                    diskFileBacking.setFileName(fileName2);
+                    diskFileBacking.setDiskMode("persistent");
+                    diskFileBacking.setThinProvisioned(false);
+                    diskFileBacking.setWriteThrough(false);
+                    disk.setBacking(diskFileBacking);
+                    machineSpecs.add(diskSpec);
+
+                    VirtualMachineConfigSpec spec = new VirtualMachineConfigSpec();
+                    spec.getDeviceChange().addAll(machineSpecs);
+
+                    CloudException lastError;
+                    ManagedObjectReference taskmor = vmSupport.reconfigVMTask(vmRef, spec);
+
+                    VsphereMethod method = new VsphereMethod(provider);
+                    TimePeriod interval = new TimePeriod<Second>(15, TimePeriod.SECOND);
+
+                    if( method.getOperationComplete(taskmor, interval, 4) ) {
+                        long timeout = System.currentTimeMillis() + (CalendarWrapper.MINUTE * 20L);
+
+                        while( System.currentTimeMillis() < timeout ) {
+                            try { Thread.sleep(10000L); }
+                            catch( InterruptedException ignore ) { }
+
+                            props = retrieveObjectList(provider, "vmFolder", null, pSpecs);
+                            array = (ArrayOfVirtualDevice) getVMProperty(props, options.getProviderVirtualMachineId(), "config.hardware.device");;
+                            devices = array.getVirtualDevice();
+
+                            for (VirtualDevice device : devices) {
+                                if (device instanceof VirtualDisk) {
+                                    VirtualDisk vDisk = (VirtualDisk) device;
+                                    VirtualDiskFlatVer2BackingInfo bkInfo = (VirtualDiskFlatVer2BackingInfo) vDisk.getBacking();
+                                    String diskFileName = bkInfo.getFileName();
+                                    if (!diskNames.contains(diskFileName)) {
+                                        diskFileName = diskFileName.substring(diskFileName.lastIndexOf("/") + 1);
+                                        return diskFileName;
+                                    }
+                                }
+                            }
+                        }
+                        lastError = new CloudException("Unable to identify new volume.");
+                    }
+                    else {
+                        lastError = new CloudException("Failed to create volume: " + method.getTaskError().getVal());
+                    }
+                    if( lastError != null ) {
+                        throw lastError;
+                    }
+                    throw new CloudException("No volume and no error");
+                }
+                catch (Exception e) {
+                    throw new CloudException(e);
+                }
+            }
+            return null;
+        }
+        finally {
+            APITrace.end();
+        }
     }
 
     @Override
     public void detach(@Nonnull String volumeId, boolean force) throws InternalException, CloudException {
-        super.detach(volumeId, force);
+        APITrace.begin(provider, "HardDisk.detach");
+        try {
+            Volume volume = getVolume(volumeId);
+            if (volume == null || volume.getProviderVirtualMachineId() == null) {
+                throw new CloudException("Volume not currently attached");
+            }
+
+            Vm vmSupport = provider.getComputeServices().getVirtualMachineSupport();
+            VirtualMachine vm = vmSupport.getVirtualMachine(volume.getProviderVirtualMachineId());
+            List<PropertySpec> pSpecs = getHardDiskPSpec();
+            RetrieveResult props = retrieveObjectList(provider, "vmFolder", null, pSpecs);
+
+            if (vm != null) {
+                try {
+                    List<VirtualDeviceConfigSpec> machineSpecs = new ArrayList<VirtualDeviceConfigSpec>();
+                    Object deviceObject = getVMProperty(props, volume.getProviderVirtualMachineId(), "config.hardware.device");
+                    ArrayOfVirtualDevice array = (ArrayOfVirtualDevice) deviceObject;
+                    List<VirtualDevice> devices = array.getVirtualDevice();
+
+                    Object vmMor = getVMProperty(props, volume.getProviderVirtualMachineId(), "MOR");
+                    ManagedObjectReference vmRef = (ManagedObjectReference) vmMor;
+
+                    String diskId;
+                    int diskKey = 0;
+                    int controller = 0;
+                    boolean found = false;
+                    for (VirtualDevice device : devices) {
+                        if (device instanceof VirtualDisk) {
+                            VirtualDisk disk = (VirtualDisk)device;
+                            VirtualDeviceFileBackingInfo info = (VirtualDeviceFileBackingInfo)disk.getBacking();
+                            String filePath = info.getFileName();
+                            diskId = filePath.substring(info.getFileName().lastIndexOf("/") + 1);
+                            if (diskId == null || diskId.equals("")) {
+                                //cloud has not returned an id so we need to infer it from vm and volume name
+                                diskId = vmRef.getValue()+"-"+volume.getName();
+                            }
+                            if (diskId.equals(volumeId)) {
+                                diskKey = disk.getKey();
+                                controller = disk.getControllerKey();
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (found) {
+                        VirtualDeviceConfigSpec diskSpec =
+                                new VirtualDeviceConfigSpec();
+                        diskSpec.setOperation(VirtualDeviceConfigSpecOperation.REMOVE);
+
+                        VirtualDisk vd = new VirtualDisk();
+                        vd.setKey(diskKey);
+                        vd.setControllerKey(controller);
+                        diskSpec.setDevice(vd);
+
+                        machineSpecs.add(diskSpec);
+
+                        VirtualMachineConfigSpec spec = new VirtualMachineConfigSpec();
+                        spec.getDeviceChange().addAll(machineSpecs);
+
+                        CloudException lastError = null;
+                        ManagedObjectReference taskmor = vmSupport.reconfigVMTask(vmRef, spec);
+
+                        VsphereMethod method = new VsphereMethod(provider);
+                        TimePeriod interval = new TimePeriod<Second>(15, TimePeriod.SECOND);
+
+                        if( !method.getOperationComplete(taskmor, interval, 4) ) {
+                            lastError = new CloudException("Failed to update VM: " + method.getTaskError().getVal());
+                        }
+                        if( lastError != null ) {
+                            throw lastError;
+                        }
+                    }
+                    else {
+                        throw new CloudException("Couldn't find device "+volumeId+" to detach in vm "+vm.getName());
+                    }
+                }
+                catch (Exception e) {
+                    throw new CloudException(e);
+                }
+            }
+            else {
+                throw new CloudException("Can't find vm with id "+volume.getProviderVirtualMachineId());
+            }
+        }
+        finally {
+            APITrace.end();
+        }
     }
 
     private transient volatile HardDiskCapabilities capabilities;
@@ -118,13 +440,17 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
     public Iterable<Volume> listVolumes() throws InternalException, CloudException {
         APITrace.begin(provider, "HardDisk.listVolumes");
         try {
+            VsphereMethod method = new VsphereMethod(provider);
+            TimePeriod interval = new TimePeriod<Second>(15, TimePeriod.SECOND);
+
             List<Volume> list = new ArrayList<Volume>();
             List<String> fileNames = new ArrayList<String>();
             ProviderContext ctx = provider.getContext();
-            if (ctx != null) {
-                if (ctx.getRegionId() == null) {
-                    throw new CloudException("Region id is not set");
-                }
+            if (ctx == null) {
+                throw new NoContextException();
+            }
+            if (ctx.getRegionId() == null) {
+                throw new CloudException("Region id is not set");
             }
 
             //get attached volumes
@@ -134,20 +460,28 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
             if (listobcont != null) {
                 Iterable<ResourcePool> rps = getAllResourcePoolsIncludingRoot();//return all resourcePools
                 List<ObjectContent> objectContents = listobcont.getObjects();
+                ManagedObjectReference mo;
+                String vmId;
+                String dataCenterId;
+                Platform guestOs;
+                List<DynamicProperty> dps;
+                List<Volume> tmpVolList;
+                List<String> tmpFileNames;
+                boolean skipObject;
                 for (ObjectContent oc : objectContents) {
-                    ManagedObjectReference mo = oc.getObj();
-                    String vmId = mo.getValue();
-                    String dataCenterId = null;
-                    Platform guestOs = null;
-                    List<DynamicProperty> dps = oc.getPropSet();
+                    mo = oc.getObj();
+                    vmId = mo.getValue();
+                    dataCenterId = null;
+                    guestOs = null;
+                    dps = oc.getPropSet();
                     if (dps != null) {
-                        List<Volume> tmpVolList = new ArrayList<Volume>();
-                        List<String> tmpFileNames = new ArrayList<String>();
-                        boolean skipObject = false;
+                        tmpVolList = new ArrayList<Volume>();
+                        tmpFileNames = new ArrayList<String>();
+                        skipObject = false;
                         for (DynamicProperty dp : dps) {
                             if (dp.getName().equals("runtime.powerState")) {
                                 VirtualMachinePowerState ps = (VirtualMachinePowerState) dp.getVal();
-                                if (ps.value().equals(VirtualMachinePowerState.SUSPENDED )) {
+                                if (ps.equals(VirtualMachinePowerState.SUSPENDED )) {
                                     skipObject = true;
                                 }
                             }
@@ -190,7 +524,7 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
                             }
                         }
                         if (!skipObject) {
-                            if (tmpVolList != null && tmpVolList.size() > 0) {
+                            if (tmpVolList.size() > 0) {
                                 for (Volume v : tmpVolList) {
                                     v.setProviderDataCenterId(dataCenterId);
                                 }
@@ -203,17 +537,20 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
             }
 
             // get .vmdk files
-            List<SelectionSpec> selectionSpecsArr = dc.getStoragePoolSelectionSpec();
-            List<PropertySpec> spPSpecs = getStoragePoolPropertySpec();
+            List<PropertySpec> dsPSpecs = getDatastorePropertySpec();
 
-            RetrieveResult spListobcont = retrieveObjectList(provider, "hostFolder", selectionSpecsArr, spPSpecs);
-
-            if (spListobcont != null) {
-                for (ObjectContent oc : spListobcont.getObjects()) {
-                    String dataCenterId = null;
-                    String dsName = null;
-                    ManagedObjectReference hostDatastoreBrowser = null;
-                    List<DynamicProperty> dps = oc.getPropSet();
+            RetrieveResult dsListobcont = retrieveObjectList(provider, "datastoreFolder", null, dsPSpecs);
+            if (dsListobcont != null) {
+                Iterable<StoragePool> pools = listStoragePools();
+                String dataCenterId;
+                String dsName;
+                ManagedObjectReference hostDatastoreBrowser;
+                List<DynamicProperty> dps;
+                for (ObjectContent oc : dsListobcont.getObjects()) {
+                    dataCenterId = null;
+                    dsName = null;
+                    hostDatastoreBrowser = null;
+                    dps = oc.getPropSet();
                     if (dps != null) {
                         for (DynamicProperty dp : dps) {
                             if (dp.getName().equals("summary.name")) {
@@ -224,35 +561,34 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
                             }
                         }
                     }
-                    for (StoragePool pool : dc.listStoragePools()) {
+                    for (StoragePool pool : pools) {
                         if (pool.getStoragePoolName().equals(dsName)) {
                             dataCenterId = pool.getDataCenterId();
                             break;
                         }
                     }
-                    VsphereConnection vsphereConnection = provider.getServiceInstance();
-                    VimPortType vimPortType = vsphereConnection.getVimPort();
 
                     if (dsName != null && hostDatastoreBrowser != null) {
                         try {
-                            ManagedObjectReference taskmor = vimPortType.searchDatastoreSubFoldersTask(hostDatastoreBrowser, "[" + dsName + "]", null);
-                            VsphereMethod method = new VsphereMethod(provider);
-                            method.waitOperationComplete(taskmor);
-                            if (method.getTaskState().getVal().equals(TaskInfoState.SUCCESS)) {
+                            ManagedObjectReference taskmor = searchDatastores(provider, hostDatastoreBrowser, "[" + dsName + "]", null);
+                            if (taskmor != null && method.getOperationComplete(taskmor, interval, 4)) {
                                 PropertyChange taskResult = method.getTaskResult();
-                                ArrayOfHostDatastoreBrowserSearchResults result = (ArrayOfHostDatastoreBrowserSearchResults) taskResult.getVal();
-                                List<HostDatastoreBrowserSearchResults> res = result.getHostDatastoreBrowserSearchResults();
-                                for (HostDatastoreBrowserSearchResults r : res) {
-                                    List<FileInfo> files = r.getFile();
-                                    if (files != null) {
-                                        for (FileInfo file : files) {
-                                            String filePath = file.getPath();
-                                            if (filePath.endsWith(".vmdk") && !filePath.endsWith("-flat.vmdk")) {
-                                                if (!fileNames.contains(file.getPath())) {
-                                                    Volume d = toVolume(file, dataCenterId, ctx.getRegionId());
-                                                    if (d != null) {
-                                                        d.setTag("filePath", r.getFolderPath() + d.getProviderVolumeId());
-                                                        list.add(d);
+                                if (taskResult != null && taskResult.getVal() != null) {
+                                    ArrayOfHostDatastoreBrowserSearchResults result = (ArrayOfHostDatastoreBrowserSearchResults) taskResult.getVal();
+                                    List<HostDatastoreBrowserSearchResults> res = result.getHostDatastoreBrowserSearchResults();
+                                    for (HostDatastoreBrowserSearchResults r : res) {
+                                        List<FileInfo> files = r.getFile();
+                                        if (files != null) {
+                                            for (FileInfo file : files) {
+                                                String filePath = file.getPath();
+                                                if (filePath.endsWith(".vmdk") && !filePath.endsWith("-flat.vmdk")) {
+                                                    if (!fileNames.contains(file.getPath())) {
+                                                        Volume d = toVolume(file, dataCenterId, ctx.getRegionId());
+                                                        if (d != null) {
+                                                            d.setTag("filePath", r.getFolderPath() + d.getProviderVolumeId());
+                                                            list.add(d);
+                                                            fileNames.add(file.getPath());
+                                                        }
                                                     }
                                                 }
                                             }
@@ -261,13 +597,7 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
                                 }
                             }
                         }
-                        catch (FileFaultFaultMsg e) {
-                            throw new CloudException("Error in processing search datastore request: " + e.getMessage());
-                        }
-                        catch (InvalidDatastoreFaultMsg e) {
-                            throw new CloudException("Error in processing search datastore request: " + e.getMessage());
-                        }
-                        catch (RuntimeFaultFaultMsg e) {
+                        catch (Exception e) {
                             throw new CloudException("Error in processing search datastore request: " + e.getMessage());
                         }
                     }
@@ -289,34 +619,21 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
     public void remove(@Nonnull String volumeId) throws InternalException, CloudException {
         APITrace.begin(provider, "HardDisk.remove");
         try {
-            Volume volume = null;
-            Iterable<Volume> volumes = listVolumes();
-            for (Volume v : volumes) {
-                if (v.getProviderVirtualMachineId() != null) {
-                    if (v.getProviderVolumeId().equals(volumeId)) {
-                        throw new CloudException("Volume is attached to vm " + v.getProviderVirtualMachineId() + " - removing not allowed");
-                    }
-                }
+            Volume volume = getVolume(volumeId);
+            if (volume != null && volume.getProviderVirtualMachineId() != null) {
+                throw new CloudException("Volume is attached to vm " + volume.getProviderVirtualMachineId() + " - removing not allowed");
             }
 
-            volume = getVolume(volumeId);
-            ManagedObjectReference datacenter = null;
             if (volume != null) {
-                List<PropertySpec> regionPSpec = dc.getRegionPropertySpec();
-                RetrieveResult regList = retrieveObjectList(provider, "hostFolder", null, regionPSpec);
-                if (regList != null) {
-                    for (ObjectContent oc : regList.getObjects()) {
-                        ManagedObjectReference regRef = oc.getObj();
-                        String regId = regRef.getValue();
-                        if (regId.equals(volume.getProviderRegionId())) {
-                            datacenter = regRef;
-                            break;
-                        }
-                    }
-                }
                 VsphereConnection vsphereConnection = provider.getServiceInstance();
                 ManagedObjectReference fileManager = vsphereConnection.getServiceContent().getFileManager();
+                ManagedObjectReference searchIndex = vsphereConnection.getServiceContent().getSearchIndex();
                 VimPortType vimPortType = vsphereConnection.getVimPort();
+                Region r = dc.getRegion(volume.getProviderRegionId());
+                String regionName = r.getName();
+                String pathToDC = "/"+regionName;
+
+                ManagedObjectReference datacenter = vimPortType.findByInventoryPath(searchIndex, pathToDC);
 
                 if (datacenter != null) {
                     String filePath = volume.getTag("filePath");
@@ -327,13 +644,7 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
                 }
             }
         }
-        catch (FileFaultFaultMsg e) {
-            throw new CloudException("Error in processing remove file request: " + e.getMessage());
-        }
-        catch (InvalidDatastoreFaultMsg e) {
-            throw new CloudException("Error in processing remove file request: " + e.getMessage());
-        }
-        catch (RuntimeFaultFaultMsg e) {
+        catch (Exception e) {
             throw new CloudException("Error in processing remove file request: " + e.getMessage());
         }
         finally {
@@ -342,7 +653,7 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
     }
 
     @Nonnull
-    private List<ResourcePool> getAllResourcePoolsIncludingRoot() throws InternalException, CloudException {
+    public List<ResourcePool> getAllResourcePoolsIncludingRoot() throws InternalException, CloudException {
         try {
             List<ResourcePool> resourcePools = new ArrayList<ResourcePool>();
 
@@ -378,6 +689,31 @@ public class HardDisk extends AbstractVolumeSupport<Vsphere> {
         finally {
             APITrace.end();
         }
+    }
+
+    private Object getVMProperty(@Nonnull RetrieveResult rr, @Nonnull String vmId, @Nonnull String propertyName) throws CloudException, InternalException {
+        Object object = null;
+        if (rr != null) {
+            List<ObjectContent> objectContentList = rr.getObjects();
+            for (ObjectContent obj : objectContentList) {
+                ManagedObjectReference vmRef = obj.getObj();
+                String id = vmRef.getValue();
+                if (vmId.equals(id)) {
+                    if (propertyName.equals("MOR")) {
+                        return vmRef;
+                    }
+                    List<DynamicProperty> dps = obj.getPropSet();
+                    for (DynamicProperty dp : dps) {
+                        if (dp.getName().equals(propertyName)) {
+                            object = dp.getVal();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        return object;
     }
 
     private @Nullable Volume toVolume(@Nonnull VirtualDisk disk, @Nonnull String vmId, @Nonnull String regionId) {

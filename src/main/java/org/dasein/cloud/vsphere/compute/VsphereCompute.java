@@ -20,18 +20,18 @@ public class VsphereCompute extends AbstractComputeServices<Vsphere> {
 
     @Nullable
     @Override
-    public AffinityGroupSupport getAffinityGroupSupport() {
+    public HostSupport getAffinityGroupSupport() {
         return new HostSupport(getProvider());
     }
 
     @Override
-    public @Nullable VirtualMachineSupport getVirtualMachineSupport() {
+    public @Nullable Vm getVirtualMachineSupport() {
         return new Vm(getProvider());
     }
 
     @Nullable
     @Override
-    public VolumeSupport getVolumeSupport() { return new HardDisk(getProvider()); }
+    public HardDisk getVolumeSupport() { return new HardDisk(getProvider()); }
 
     public @Nonnull ImageSupport getImageSupport() {
         return new ImageSupport(getProvider());
