@@ -53,9 +53,7 @@ public class Vm extends AbstractVMSupport<Vsphere> {
     }
 
     public List<PropertySpec> getVirtualMachinePSpec() {
-        if (virtualMachinePSpec == null) {
-            virtualMachinePSpec = VsphereTraversalSpec.createPropertySpec(virtualMachinePSpec, "VirtualMachine", false, "runtime", "config", "parent", "resourcePool", "guest");
-        }
+        virtualMachinePSpec = VsphereTraversalSpec.createPropertySpec(virtualMachinePSpec, "VirtualMachine", false, "runtime", "config", "parent", "resourcePool", "guest");
         return virtualMachinePSpec;
     }
 
@@ -138,6 +136,7 @@ public class Vm extends AbstractVMSupport<Vsphere> {
         return product;
     }
 
+    @Nonnull
     @Override
     public Iterable<VirtualMachineProduct> listProducts(
             /** ignored **/ @Nonnull String machineImageId,
@@ -384,34 +383,41 @@ public class Vm extends AbstractVMSupport<Vsphere> {
                     String dataCenterId = null, vmFolderName = null;
                     GuestInfo guestInfo = null;
                     VirtualMachineRuntimeInfo vmRuntimeInfo = null;
+                    label:
                     for (DynamicProperty dp : dps) {
-                        if (dp.getName().equals("config")) {
-                            vmInfo = (VirtualMachineConfigInfo) dp.getVal();
-                            if (vmInfo.isTemplate()) {
-                                isTemplate = true;
+                        switch (dp.getName()) {
+                            case "config":
+                                vmInfo = (VirtualMachineConfigInfo) dp.getVal();
+                                if (vmInfo.isTemplate()) {
+                                    isTemplate = true;
+                                    break label;
+                                }
                                 break;
-                            }
-                        } else if (dp.getName().equals("resourcePool")) {
-                            rpRef = (ManagedObjectReference) dp.getVal();
-                            String resourcePoolId = rpRef.getValue();
-                            for (ResourcePool rp : rps) {
-                                if (rp.getProvideResourcePoolId().equals(resourcePoolId)) {
-                                    dataCenterId = rp.getDataCenterId();
-                                    break;
+                            case "resourcePool":
+                                rpRef = (ManagedObjectReference) dp.getVal();
+                                String resourcePoolId = rpRef.getValue();
+                                for (ResourcePool rp : rps) {
+                                    if (rp.getProvideResourcePoolId().equals(resourcePoolId)) {
+                                        dataCenterId = rp.getDataCenterId();
+                                        break;
+                                    }
                                 }
-                            }
-                        } else if (dp.getName().equals("guest")) {
-                            guestInfo = (GuestInfo) dp.getVal();
-                        } else if (dp.getName().equals("runtime")) {
-                            vmRuntimeInfo = (VirtualMachineRuntimeInfo) dp.getVal();
-                        } else if (dp.getName().equals("parent")) {
-                            parentRef = (ManagedObjectReference) dp.getVal();
-                            for (Folder vmFolder : vmFolders) {
-                                if (vmFolder.getId().equals(parentRef.getValue())) {
-                                    vmFolderName = vmFolder.getName();
-                                    break;
+                                break;
+                            case "guest":
+                                guestInfo = (GuestInfo) dp.getVal();
+                                break;
+                            case "runtime":
+                                vmRuntimeInfo = (VirtualMachineRuntimeInfo) dp.getVal();
+                                break;
+                            case "parent":
+                                parentRef = (ManagedObjectReference) dp.getVal();
+                                for (Folder vmFolder : vmFolders) {
+                                    if (vmFolder.getId().equals(parentRef.getValue())) {
+                                        vmFolderName = vmFolder.getName();
+                                        break;
+                                    }
                                 }
-                            }
+                                break;
                         }
                     }
                     if (!isTemplate) {
@@ -422,9 +428,9 @@ public class Vm extends AbstractVMSupport<Vsphere> {
                                 if (ourDC != null) {
                                     vm.setProviderDataCenterId(dataCenterId);
                                     vm.setProviderRegionId(ourDC.getRegionId());
-                                } else if (dc.equals(getContext().getRegionId())) {
+                                } else if (dataCenterId.equals(getContext().getRegionId())) {
                                     // env doesn't have clusters?
-                                    vm.setProviderDataCenterId(dc + "-a");
+                                    vm.setProviderDataCenterId(dataCenterId + "-a");
                                     vm.setProviderRegionId(dataCenterId);
                                 }
                                 if (vm.getProviderDataCenterId() != null) {
@@ -597,11 +603,11 @@ public class Vm extends AbstractVMSupport<Vsphere> {
 
                     }
                 }
-                if( privIps != null && privIps.size() > 0 ) {
+                if( privIps.size() > 0 ) {
                     RawAddress[] rawPriv = privIps.toArray(new RawAddress[privIps.size()]);
                     server.setPrivateAddresses(rawPriv);
                 }
-                if( pubIps != null && pubIps.size() > 0 ) {
+                if( pubIps.size() > 0 ) {
                     RawAddress[] rawPub = pubIps.toArray(new RawAddress[pubIps.size()]);
                     server.setPublicAddresses(rawPub);
                 }
