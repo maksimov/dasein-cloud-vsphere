@@ -722,6 +722,7 @@ public class HardDiskTest extends VsphereTestBase {
         options.withVirtualMachineId("vm-2318");
         String newVolume = hd.createVolume(options);
         assertNotNull(newVolume);
+        assertEquals("New volume id does not match expected", "myNewDisk.vmdk", newVolume);
     }
 
     @Test(expected = NoContextException.class)

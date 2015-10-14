@@ -270,7 +270,7 @@ public class DataCenters extends AbstractDataCenterServices<Vsphere> {
 
     @Override
     @Nonnull
-    public Iterable<ResourcePool> listResourcePools(String providerDataCenterId) throws InternalException, CloudException {
+    public Collection<ResourcePool> listResourcePools(String providerDataCenterId) throws InternalException, CloudException {
         APITrace.begin(provider, "listResourcePools");
         try {
             List<ResourcePool> resourcePools = new ArrayList<ResourcePool>();

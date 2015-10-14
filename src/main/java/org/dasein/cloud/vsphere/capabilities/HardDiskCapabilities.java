@@ -46,16 +46,6 @@ public class HardDiskCapabilities extends AbstractCapabilities<Vsphere> implemen
     }
 
     @Override
-    public int getMaximumVolumeProductIOPS() throws InternalException, CloudException {
-        return AbstractCapabilities.LIMIT_UNKNOWN;
-    }
-
-    @Override
-    public int getMinimumVolumeProductIOPS() throws InternalException, CloudException {
-        return AbstractCapabilities.LIMIT_UNKNOWN;
-    }
-
-    @Override
     public int getMaximumVolumeSizeIOPS() throws InternalException, CloudException {
         return AbstractCapabilities.LIMIT_UNKNOWN;
     }
@@ -101,6 +91,11 @@ public class HardDiskCapabilities extends AbstractCapabilities<Vsphere> implemen
     }
 
     @Override
+    public boolean supportsIOPSVolumes() throws InternalException, CloudException {
+        return false;
+    }
+
+    @Override
     public boolean isVolumeSizeDeterminedByProduct() throws InternalException, CloudException {
         return false;
     }
@@ -130,5 +125,15 @@ public class HardDiskCapabilities extends AbstractCapabilities<Vsphere> implemen
     @Override
     public Requirement requiresVMOnCreate() throws InternalException, CloudException {
         return Requirement.REQUIRED;
+    }
+
+    @Override
+    public boolean supportsAttach() {
+        return true;
+    }
+
+    @Override
+    public boolean supportsDetach() {
+        return true;
     }
 }
