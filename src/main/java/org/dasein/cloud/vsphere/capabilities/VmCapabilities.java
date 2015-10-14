@@ -29,63 +29,52 @@ public class VmCapabilities extends AbstractCapabilities<Vsphere> implements Vir
     }
 
     @Override
-    public boolean canAlter(VmState fromState) throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return false;
-    }
-
-    @Override
-    public boolean canClone(VmState fromState) throws CloudException, InternalException {
+    public boolean canAlter(@Nonnull VmState fromState) throws CloudException, InternalException {
         return true;
     }
 
     @Override
-    public boolean canPause(VmState fromState) throws CloudException, InternalException {
-        return false;
-    }
-
-    @Override
-    public boolean canReboot(VmState fromState) throws CloudException, InternalException {
+    public boolean canClone(@Nonnull VmState fromState) throws CloudException, InternalException {
         return true;
     }
 
     @Override
-    public boolean canResume(VmState fromState) throws CloudException, InternalException {
+    public boolean canPause(@Nonnull VmState fromState) throws CloudException, InternalException {
         return false;
     }
 
     @Override
-    public boolean canStart(VmState fromState) throws CloudException, InternalException {
-        if (VmState.STOPPED == fromState) {
-            return true;
-        }
-        return false;
+    public boolean canReboot(@Nonnull VmState fromState) throws CloudException, InternalException {
+        return fromState.equals(VmState.RUNNING);
     }
 
     @Override
-    public boolean canStop(VmState fromState) throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return false;
+    public boolean canResume(@Nonnull VmState fromState) throws CloudException, InternalException {
+        return !fromState.equals(VmState.RUNNING);
     }
 
     @Override
-    public boolean canSuspend(VmState fromState) throws CloudException, InternalException {
-        if (VmState.RUNNING == fromState) {
-            return true;
-        }
-        return false;
+    public boolean canStart(@Nonnull VmState fromState) throws CloudException, InternalException {
+        return fromState.equals(VmState.STOPPED);
     }
 
     @Override
-    public boolean canTerminate(VmState fromState) throws CloudException, InternalException {
-        if (VmState.STOPPED == fromState) {
-            return true;
-        }
-        return false;
+    public boolean canStop(@Nonnull VmState fromState) throws CloudException, InternalException {
+        return !fromState.equals(VmState.STOPPED);
     }
 
     @Override
-    public boolean canUnpause(VmState fromState) throws CloudException, InternalException {
+    public boolean canSuspend(@Nonnull VmState fromState) throws CloudException, InternalException {
+        return fromState.equals(VmState.RUNNING);
+    }
+
+    @Override
+    public boolean canTerminate(@Nonnull VmState fromState) throws CloudException, InternalException {
+        return fromState.equals(VmState.STOPPED);
+    }
+
+    @Override
+    public boolean canUnpause(@Nonnull VmState fromState) throws CloudException, InternalException {
         return false;
     }
 
@@ -95,22 +84,22 @@ public class VmCapabilities extends AbstractCapabilities<Vsphere> implements Vir
     }
 
     @Override
-    public int getCostFactor(VmState state) throws CloudException, InternalException {
-        // TODO Auto-generated method stub
+    public int getCostFactor(@Nonnull VmState state) throws CloudException, InternalException {
         return 0;
     }
 
+    @Nonnull
     @Override
-    public String getProviderTermForVirtualMachine(Locale locale) throws CloudException, InternalException {
+    public String getProviderTermForVirtualMachine(@Nonnull Locale locale) throws CloudException, InternalException {
         return "virtual machine";
     }
 
     @Override
     public VMScalingCapabilities getVerticalScalingCapabilities() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return null;
+        return VMScalingCapabilities.getInstance(false,false,true);
     }
 
+    @Nonnull
     @Override
     public NamingConstraints getVirtualMachineNamingConstraints() throws CloudException, InternalException {
         return NamingConstraints.getAlphaNumeric(1, 80).withRegularExpression(".{1,80}");
@@ -126,50 +115,58 @@ public class VmCapabilities extends AbstractCapabilities<Vsphere> implements Vir
         return VisibleScope.ACCOUNT_REGION;
     }
 
+    @Nonnull
+    @Override
+    public String[] getVirtualMachineReservedUserNames() {
+        return new String[0];
+    }
+
+    @Nonnull
     @Override
     public Requirement identifyDataCenterLaunchRequirement() throws CloudException, InternalException {
         return Requirement.REQUIRED;
     }
 
+    @Nonnull
     @Override
-    public Requirement identifyImageRequirement(ImageClass cls) throws CloudException, InternalException {
+    public Requirement identifyImageRequirement(@Nonnull ImageClass cls) throws CloudException, InternalException {
+        return (cls.equals(ImageClass.MACHINE) ? Requirement.REQUIRED : Requirement.NONE);
+    }
 
+    @Nonnull
+    @Override
+    public Requirement identifyPasswordRequirement(Platform platform) throws CloudException, InternalException {
         return Requirement.REQUIRED;
     }
 
-    @Override
-    public Requirement identifyPasswordRequirement(Platform platform) throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
+    @Nonnull
     @Override
     public Requirement identifyRootVolumeRequirement() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return null;
+        return Requirement.NONE;
     }
 
+    @Nonnull
     @Override
     public Requirement identifyShellKeyRequirement(Platform platform) throws CloudException, InternalException {
         return Requirement.NONE;
     }
 
+    @Nonnull
     @Override
     public Requirement identifyStaticIPRequirement() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return null;
+        return Requirement.OPTIONAL;
     }
 
+    @Nonnull
     @Override
     public Requirement identifySubnetRequirement() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return null;
+        return Requirement.NONE;
     }
 
+    @Nonnull
     @Override
     public Requirement identifyVlanRequirement() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
-        return null;
+        return Requirement.OPTIONAL;
     }
 
     @Override
@@ -179,25 +176,26 @@ public class VmCapabilities extends AbstractCapabilities<Vsphere> implements Vir
 
     @Override
     public boolean isBasicAnalyticsSupported() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean isExtendedAnalyticsSupported() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean isUserDataSupported() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean isUserDefinedPrivateIPSupported() throws CloudException, InternalException {
-        // TODO Auto-generated method stub
+        return true;
+    }
+
+    @Override
+    public boolean isRootPasswordSSHKeyEncrypted() throws CloudException, InternalException {
         return false;
     }
 
@@ -214,13 +212,11 @@ public class VmCapabilities extends AbstractCapabilities<Vsphere> implements Vir
 
     @Override
     public boolean supportsSpotVirtualMachines() throws InternalException, CloudException {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean supportsClientRequestToken() throws InternalException, CloudException {
-        // TODO Auto-generated method stub
         return false;
     }
 
@@ -236,8 +232,7 @@ public class VmCapabilities extends AbstractCapabilities<Vsphere> implements Vir
 
     @Override
     public boolean supportsAlterVM() {
-        // TODO Auto-generated method stub
-        return false;
+        return true;
     }
 
     @Override
@@ -257,7 +252,7 @@ public class VmCapabilities extends AbstractCapabilities<Vsphere> implements Vir
 
     @Override
     public boolean supportsResume() {
-        return false;
+        return true;
     }
 
     @Override
@@ -272,7 +267,7 @@ public class VmCapabilities extends AbstractCapabilities<Vsphere> implements Vir
 
     @Override
     public boolean supportsSuspend() {
-        return false;
+        return true;
     }
 
     @Override
