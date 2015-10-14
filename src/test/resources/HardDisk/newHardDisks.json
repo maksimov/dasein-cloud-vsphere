@@ -390,12 +390,12 @@
             "key" : 2002,
             "deviceInfo" : {
               "type" : "com.vmware.vim25.Description",
-              "label" : "Hard disk 1",
+              "label" : "Hard disk 3",
               "summary" : "2,428,800 KB"
             },
             "backing" : {
               "type" : "com.vmware.vim25.VirtualDiskFlatVer2BackingInfo",
-              "fileName" : "[shared-datastore-1] dmTesting7Oct/dmTesting7Oct_3.vmdk",
+              "fileName" : "[shared-datastore-1] dmTesting7Oct/myNewDisk.vmdk",
               "datastore" : {
                 "type" : "com.vmware.vim25.ManagedObjectReference",
                 "value" : "datastore-37",
