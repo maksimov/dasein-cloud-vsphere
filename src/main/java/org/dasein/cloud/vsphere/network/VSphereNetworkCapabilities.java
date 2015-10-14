@@ -55,6 +55,11 @@ public class VSphereNetworkCapabilities extends AbstractCapabilities<Vsphere> im
     }
 
     @Override
+    public boolean allowsDeletionOfReservedSubnets() throws CloudException, InternalException {
+        return false;
+    }
+
+    @Override
     public int getMaxNetworkInterfaceCount() throws CloudException, InternalException {
         return LIMIT_UNKNOWN;
     }
