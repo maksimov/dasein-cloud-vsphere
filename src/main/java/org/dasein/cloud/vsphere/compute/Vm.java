@@ -461,21 +461,20 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
                     config.setNumCoresPerSocket(cpuCount);
 
                     // record all networks we will end up with so that we can configure NICs correctly
-                    List<String> resultingNetworks = new ArrayList<String>();
-
+                    List<String> resultingNetworks = new ArrayList<>();
                     //networking section
                     //borrowed heavily from https://github.com/jedi4ever/jvspherecontrol
                     String vlan = options.getVlanId();
-
+                    int count = 0;
                     if( vlan != null ) {
 
                         // we don't need to do network config if the selected network
                         // is part of the template config anyway
                         VLANSupport vlanSupport = getProvider().getNetworkServices().getVlanSupport();
-                        Iterable<VLAN> accessibleNetworks = vlanSupport.listVlans();
-                        boolean changeRequired = true;
-                        List<VirtualDeviceConfigSpec> machineSpecs = new ArrayList<VirtualDeviceConfigSpec>();
 
+                        Iterable<VLAN> accessibleNetworks = vlanSupport.listVlans();
+                        boolean addNetwork = true;
+                        List<VirtualDeviceConfigSpec> machineSpecs = new ArrayList<>();
                         VirtualDevice[] virtualDevices = template.getConfig().getHardware().getDevice();
                         VLAN targetVlan = null;
                         for(VirtualDevice virtualDevice : virtualDevices) {
@@ -484,8 +483,8 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
                                 if( veCard.getBacking() instanceof VirtualEthernetCardNetworkBackingInfo ) {
                                     boolean nicDeleted = false;
                                     VirtualEthernetCardNetworkBackingInfo nicBacking = (VirtualEthernetCardNetworkBackingInfo) veCard.getBacking();
-                                    if( vlan.equals(nicBacking.getNetwork().getVal()) ) {
-                                        changeRequired = false;
+                                    if( vlan.equals(nicBacking.getNetwork().getVal()) && veCard.getKey() == 0 ) {
+                                        addNetwork = false;
                                     }
                                     else {
                                         for( VLAN accessibleNetwork : accessibleNetworks ) {
@@ -496,22 +495,27 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
                                                 nicSpec.setDevice(veCard);
                                                 machineSpecs.add(nicSpec);
                                                 nicDeleted = true;
-                                                break;
+
+                                                if( accessibleNetwork.getProviderVlanId().equals(vlan) ) {
+                                                    targetVlan = accessibleNetwork;
+                                                }
                                             }
                                             else if( accessibleNetwork.getProviderVlanId().equals(vlan) ) {
                                                 targetVlan = accessibleNetwork;
+                                            }
+                                            if( nicDeleted && targetVlan != null ) {
+                                                break;
                                             }
                                         }
                                     }
                                     if( !nicDeleted ) {
                                         resultingNetworks.add(nicBacking.getNetwork().getVal());
                                     }
-                                }
-                                else if ( veCard.getBacking() instanceof VirtualEthernetCardDistributedVirtualPortBackingInfo ){
+                                }else if ( veCard.getBacking() instanceof VirtualEthernetCardDistributedVirtualPortBackingInfo ){
                                     boolean nicDeleted = false;
                                     VirtualEthernetCardDistributedVirtualPortBackingInfo nicBacking = (VirtualEthernetCardDistributedVirtualPortBackingInfo) veCard.getBacking();
-                                    if( vlan.equals(nicBacking.getPort().getPortgroupKey()) ) {
-                                        changeRequired = false;
+                                    if( vlan.equals(nicBacking.getPort().getPortgroupKey()) && veCard.getKey() == 0 ) {
+                                        addNetwork = false;
                                     }
                                     else {
                                         for( VLAN accessibleNetwork : accessibleNetworks ) {
@@ -522,6 +526,10 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
                                                 nicSpec.setDevice(veCard);
                                                 machineSpecs.add(nicSpec);
                                                 nicDeleted = true;
+
+                                                if( accessibleNetwork.getProviderVlanId().equals(vlan) ) {
+                                                    targetVlan = accessibleNetwork;
+                                                }
                                             }
                                             else if( accessibleNetwork.getProviderVlanId().equals(vlan) ) {
                                                 targetVlan = accessibleNetwork;
@@ -535,10 +543,11 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
                                         resultingNetworks.add(nicBacking.getPort().getPortgroupKey());
                                     }
                                 }
+
                             }
                         }
 
-                        if( changeRequired && targetVlan != null ) {
+                        if( addNetwork && targetVlan != null ) {
                             VirtualDeviceConfigSpec nicSpec = new VirtualDeviceConfigSpec();
                             nicSpec.setOperation(VirtualDeviceConfigSpecOperation.add);
 
@@ -575,7 +584,6 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
 
                             machineSpecs.add(nicSpec);
                             resultingNetworks.add(vlan);
-
                         }
                         config.setDeviceChange(machineSpecs.toArray(new VirtualDeviceConfigSpec[machineSpecs.size()]));
                         // end networking section
@@ -608,14 +616,14 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
                     }
                     CustomizationSpec customizationSpec = new CustomizationSpec();
                     if( isCustomised ) {
-                        String templatePlatform = template.getGuest().getGuestFullName();
+                        String templatePlatform = template.getConfig().getGuestFullName();
                         if(templatePlatform == null) templatePlatform = template.getName();
                         Platform platform = Platform.guess(templatePlatform.toLowerCase());
                         if (platform.isLinux()) {
 
                             CustomizationLinuxPrep lPrep = new CustomizationLinuxPrep();
-                            lPrep.setDomain(options.getDnsDomain()); // not null
-                            lPrep.setHostName(new CustomizationVirtualMachineName()); // not null
+                            lPrep.setDomain(options.getDnsDomain());
+                            lPrep.setHostName(new CustomizationVirtualMachineName());
                             customizationSpec.setIdentity(lPrep);
                         }
                         else if( platform.isWindows() ) {
@@ -640,7 +648,12 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
                             userData.setComputerName(new CustomizationVirtualMachineName());
                             userData.setFullName(options.getWinOwnerName());
                             userData.setOrgName(options.getWinOrgName());
-                            userData.setProductId(options.getWinProductSerialNum());
+                            String serial = options.getWinProductSerialNum();
+                            if (serial == null || serial.length() <= 0) {
+                                log.warn("Product license key not specified in launch options. Trying to get default.");
+                                serial = getWindowsProductLicenseForOSEdition(template.getConfig().getGuestFullName());
+                            }
+                            userData.setProductId(serial);
                             sysprep.setUserData(userData);
 
                             customizationSpec.setIdentity(sysprep);
@@ -651,42 +664,30 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
                         }
 
                         if( isCustomised ) {
-                            List<CustomizationAdapterMapping> adapterMappings = new ArrayList<CustomizationAdapterMapping>();
-                            for( String network : resultingNetworks ) {
-                                CustomizationAdapterMapping adapterMap = new CustomizationAdapterMapping();
-                                if( network.equalsIgnoreCase(vlan) ) {
-                                    CustomizationGlobalIPSettings globalIPSettings = new CustomizationGlobalIPSettings();
-                                    globalIPSettings.setDnsServerList(options.getDnsServerList());
-                                    globalIPSettings.setDnsSuffixList(options.getDnsSuffixList());
-                                    customizationSpec.setGlobalIPSettings(globalIPSettings);
+                            CustomizationGlobalIPSettings globalIPSettings = new CustomizationGlobalIPSettings();
+                            globalIPSettings.setDnsServerList(options.getDnsServerList());
+                            globalIPSettings.setDnsSuffixList(options.getDnsSuffixList());
+                            customizationSpec.setGlobalIPSettings(globalIPSettings);
 
-                                    CustomizationIPSettings adapter = new CustomizationIPSettings();
-                                    adapter.setDnsDomain(options.getDnsDomain());
-                                    adapter.setGateway(options.getGatewayList());
-                                    CustomizationFixedIp fixedIp = new CustomizationFixedIp();
-                                    fixedIp.setIpAddress(options.getPrivateIp());
-                                    adapter.setIp(fixedIp);
-                                    if( options.getMetaData().containsKey("vSphereNetMaskNothingToSeeHere") ) {
-                                        String netmask = ( String ) options.getMetaData().get("vSphereNetMaskNothingToSeeHere");
-                                        adapter.setSubnetMask(netmask);
-                                        log.debug("custom subnet mask: " + netmask);
-                                    }
-                                    else {
-                                        adapter.setSubnetMask("255.255.252.0");
-                                        log.debug("default subnet mask");
-                                    }
-
-                                    adapterMap.setAdapter(adapter);
-                                }
-                                else {
-                                    CustomizationIPSettings adapter = new CustomizationIPSettings();
-                                    adapter.setDnsDomain(options.getDnsDomain());
-                                    adapter.setIp(new CustomizationDhcpIpGenerator());
-                                    adapterMap.setAdapter(adapter);
-                                }
-                                adapterMappings.add(adapterMap);
+                            CustomizationAdapterMapping adapterMap = new CustomizationAdapterMapping();
+                            CustomizationIPSettings adapter = new CustomizationIPSettings();
+                            adapter.setDnsDomain(options.getDnsDomain());
+                            adapter.setGateway(options.getGatewayList());
+                            CustomizationFixedIp fixedIp = new CustomizationFixedIp();
+                            fixedIp.setIpAddress(options.getPrivateIp());
+                            adapter.setIp(fixedIp);
+                            if( options.getMetaData().containsKey("vSphereNetMaskNothingToSeeHere") ) {
+                                String netmask = ( String ) options.getMetaData().get("vSphereNetMaskNothingToSeeHere");
+                                adapter.setSubnetMask(netmask);
+                                log.debug("custom subnet mask: " + netmask);
                             }
-                            customizationSpec.setNicSettingMap(adapterMappings.toArray(new CustomizationAdapterMapping[adapterMappings.size()]));
+                            else {
+                                adapter.setSubnetMask("255.255.252.0");
+                                log.debug("default subnet mask");
+                            }
+
+                            adapterMap.setAdapter(adapter);
+                            customizationSpec.setNicSettingMap(Arrays.asList(adapterMap).toArray(new CustomizationAdapterMapping[1]));
                         }
                     }
 
@@ -754,11 +755,6 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
     private @Nonnull VirtualMachine defineFromScratch(@Nonnull VMLaunchOptions options) throws InternalException, CloudException {
         APITrace.begin(getProvider(), "Vm.define");
         try {
-            ProviderContext ctx = getProvider().getContext();
-
-            if( ctx == null ) {
-                throw new InternalException("No context was set for this request");
-            }
             ServiceInstance instance = getServiceInstance();
             try {
                 String hostName = validateName(options.getHostName());
@@ -771,7 +767,7 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
                 }
 
                 if( dataCenterId == null ) {
-                    String rid = ctx.getRegionId();
+                    String rid = getContext().getRegionId();
 
                     if( rid != null ) {
                         for( DataCenter dsdc : getProvider().getDataCenterServices().listDataCenters(rid) ) {
@@ -881,6 +877,8 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
                     //networking section
                     //borrowed heavily from https://github.com/jedi4ever/jvspherecontrol
                     String vlan = options.getVlanId();
+                    VLANSupport vlanSupport = getProvider().getNetworkServices().getVlanSupport();
+                    VLAN fullvlan = vlanSupport.getVlan(vlan);
                     if( vlan != null ) {
                         VirtualDeviceConfigSpec nicSpec = new VirtualDeviceConfigSpec();
                         nicSpec.setOperation(VirtualDeviceConfigSpecOperation.add);
@@ -891,16 +889,29 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
                         nic.connectable.startConnected = true;
 
                         Description info = new Description();
-                        info.setLabel(vlan);
-                        info.setSummary("Nic for network " + vlan);
+                        info.setLabel(fullvlan.getName());
+                        if( fullvlan.getProviderVlanId().startsWith("network") ) {
+                            info.setSummary("Nic for network " + fullvlan.getName());
 
-                        VirtualEthernetCardNetworkBackingInfo nicBacking = new VirtualEthernetCardNetworkBackingInfo();
-                        nicBacking.setDeviceName(vlan);
+                            VirtualEthernetCardNetworkBackingInfo nicBacking = new VirtualEthernetCardNetworkBackingInfo();
+                            nicBacking.setDeviceName(fullvlan.getName());
 
-                        nic.setAddressType("generated");
-                        nic.setBacking(nicBacking);
-                        nic.setKey(0);
+                            nic.setAddressType("generated");
+                            nic.setBacking(nicBacking);
+                            nic.setKey(0);
+                        }
+                        else {
+                            info.setSummary("Nic for DVS " + fullvlan.getName());
 
+                            VirtualEthernetCardDistributedVirtualPortBackingInfo nicBacking = new VirtualEthernetCardDistributedVirtualPortBackingInfo();
+                            DistributedVirtualSwitchPortConnection connection = new DistributedVirtualSwitchPortConnection();
+                            connection.setPortgroupKey(fullvlan.getProviderVlanId());
+                            connection.setSwitchUuid(fullvlan.getTag("switch.uuid"));
+                            nicBacking.setPort(connection);
+                            nic.setAddressType("generated");
+                            nic.setBacking(nicBacking);
+                            nic.setKey(0);
+                        }
                         nicSpec.setDevice(nic);
 
                         VirtualDeviceConfigSpec[] machineSpecs = new VirtualDeviceConfigSpec[1];
@@ -1022,6 +1033,7 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
             for( ManagedEntity me : dc.getHostFolder().getChildEntity() ) {
                 if( me.getName().equals(clusterName) ) {
                     ComputeResource cluster = ( ComputeResource ) me;
+
                     for( HostSystem host : cluster.getHosts() ) {
                         if( host.getConfigStatus().equals(ManagedEntityStatus.green) ) {
                             possibles.add(host);
@@ -1182,12 +1194,12 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
             // get resource pools from cache or live
             Cache<org.dasein.cloud.dc.ResourcePool> cache = Cache.getInstance(
                     getProvider(), "resourcePools", org.dasein.cloud.dc.ResourcePool.class, CacheLevel.REGION_ACCOUNT,
-                    new TimePeriod<Minute>(15, TimePeriod.MINUTE));
+                    new TimePeriod<>(15, TimePeriod.MINUTE));
             Collection<org.dasein.cloud.dc.ResourcePool> rps = ( Collection<org.dasein.cloud.dc.ResourcePool> ) cache.get(getContext());
 
             if( rps == null ) {
                 Collection<DataCenter> dcs = getProvider().getDataCenterServices().listDataCenters(getContext().getRegionId());
-                rps = new ArrayList<org.dasein.cloud.dc.ResourcePool>();
+                rps = new ArrayList<>();
 
                 for( DataCenter dc : dcs ) {
                     Collection<org.dasein.cloud.dc.ResourcePool> pools = getProvider().getDataCenterServices().listResourcePools(dc.getProviderDataCenterId());
@@ -1208,10 +1220,17 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
             // second add same products but augmented with the resource pool info, ordered by pool name
             for( org.dasein.cloud.dc.ResourcePool pool : rps ) {
                 for( VirtualMachineProduct product : jsonProducts ) {
-                    product.setName("Pool " + pool.getName() + "/" + product.getName());
-                    product.setProviderProductId(pool.getProvideResourcePoolId() + ":" + product.getProviderProductId());
+                    VirtualMachineProduct tmp = new VirtualMachineProduct();
+                    tmp.setName("Pool " + pool.getName() + "/" + product.getName());
+                    tmp.setProviderProductId(pool.getProvideResourcePoolId() + ":" + product.getProviderProductId());
+                    tmp.setRootVolumeSize(product.getRootVolumeSize());
+                    tmp.setCpuCount(product.getCpuCount());
+                    tmp.setDescription(product.getDescription());
+                    tmp.setRamSize(product.getRamSize());
+                    tmp.setStandardHourlyRate(product.getStandardHourlyRate());
+
                     if( options == null || options.matches(product) ) {
-                        results.add(product);
+                        results.add(tmp);
                     }
                 }
             }
@@ -1938,6 +1957,33 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
                 throw new CloudException(ex);
             }
 
+            if ( vminfo.getHardware().getDevice() != null && vminfo.getHardware().getDevice().length > 0 ) {
+                VirtualDevice[] virtualDevices = vm.getConfig().getHardware().getDevice();
+                for(VirtualDevice virtualDevice : virtualDevices) {
+                    if( virtualDevice instanceof VirtualEthernetCard ) {
+                        VirtualEthernetCard veCard = ( VirtualEthernetCard ) virtualDevice;
+                        if( veCard.getBacking() instanceof VirtualEthernetCardNetworkBackingInfo ) {
+                            VirtualEthernetCardNetworkBackingInfo nicBacking = (VirtualEthernetCardNetworkBackingInfo) veCard.getBacking();
+                            String net = nicBacking.getNetwork().getVal();
+                            if ( net != null ) {
+                                if( server.getProviderVlanId() == null ) {
+                                    server.setProviderVlanId(net);
+                                }
+                            }
+                        }
+                        else if ( veCard.getBacking() instanceof VirtualEthernetCardDistributedVirtualPortBackingInfo ) {
+                            VirtualEthernetCardDistributedVirtualPortBackingInfo nicBacking = (VirtualEthernetCardDistributedVirtualPortBackingInfo) veCard.getBacking();
+                            String net = nicBacking.getPort().getPortgroupKey();
+                            if ( net != null ) {
+                                if (server.getProviderVlanId() == null ) {
+                                    server.setProviderVlanId(net);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             GuestInfo guest = vm.getGuest();
             if( guest != null ) {
                 if( guest.getHostName() != null ) {
@@ -1951,12 +1997,6 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
                     List<RawAddress> pubIps = new ArrayList<RawAddress>();
                     List<RawAddress> privIps = new ArrayList<RawAddress>();
                     for( GuestNicInfo nicInfo : nicInfoArray ) {
-                        String net = nicInfo.getNetwork();
-                        if( net != null ) {
-                            if( server.getProviderVlanId() == null ) {
-                                server.setProviderVlanId(net);
-                            }
-                        }
                         String[] ipAddresses = nicInfo.getIpAddress();
                         if( ipAddresses != null ) {
                             for( String ip : ipAddresses ) {
@@ -2038,5 +2078,185 @@ public class Vm extends AbstractVMSupport<PrivateCloud> {
     @Override
     public boolean isSubscribed() throws CloudException, InternalException {
         return ( getProvider().getServiceInstance() != null );
+    }
+
+    @Nonnull
+    private String getWindowsProductLicenseForOSEdition(String osEdition) {
+        if (osEdition.contains("Windows 10")) {
+            if (osEdition.contains("Professional N")) {
+                return "MH37W-N47XK-V7XM9-C7227-GCQG9";
+            }
+            else if (osEdition.contains("Professional")) {
+                return "W269N-WFGWX-YVC9B-4J6C9-T83GX";
+            }
+            else if (osEdition.contains("Enterprise N")) {
+                return "DPH2V-TTNVB-4X9Q3-TJR4H-KHJW4";
+            }
+            else if (osEdition.contains("Enterprise")) {
+                return "NPPR9-FWDCX-D2C8J-H872K-2YT43";
+            }
+            else if (osEdition.contains("Education N")) {
+                return "2WH4N-8QGBV-H22JP-CT43Q-MDWWJ";
+            }
+            else if (osEdition.contains("Education")) {
+                return "NW6C2-QMPVW-D7KKK-3GKT6-VCFB2";
+            }
+            else if (osEdition.contains("Enterprise 2015 LTSB N")) {
+                return "2F77B-TNFGY-69QQF-B8YKP-D69TJ";
+            }
+            else if (osEdition.contains("Enterprise 2015 LTSB")) {
+                return "WNMTR-4C88C-JK8YV-HQ7T2-76DF9";
+            }
+        }
+        else if (osEdition.contains("Windows 8.1")) {
+            if (osEdition.contains("Professional N")) {
+                return "HMCNV-VVBFX-7HMBH-CTY9B-B4FXY";
+            }
+            else if (osEdition.contains("Professional")) {
+                return "GCRJD-8NW9H-F2CDX-CCM8D-9D6T9";
+            }
+            else if (osEdition.contains("Enterprise N")) {
+                return "TT4HM-HN7YT-62K67-RGRQJ-JFFXW";
+            }
+            else if (osEdition.contains("Enterprise")) {
+                return "MHF9N-XY6XB-WVXMC-BTDCT-MKKG7";
+            }
+        }
+        else if (osEdition.contains("Windows Server 2012 R2")) {
+            if (osEdition.contains("Server Standard")) {
+                return "D2N9P-3P6X9-2R39C-7RTCD-MDVJX";
+            }
+            else if (osEdition.contains("Datacenter")) {
+                return "W3GGN-FT8W3-Y4M27-J84CP-Q3VJ9";
+            }
+            else if (osEdition.contains("Essentials")) {
+                return "KNC87-3J2TX-XB4WP-VCPJV-M4FWM";
+            }
+        }
+        else if (osEdition.contains("Windows 8")) {
+            if (osEdition.contains("Professional N")) {
+                return "XCVCF-2NXM9-723PB-MHCB7-2RYQQ";
+            }
+            else if (osEdition.contains("Professional")) {
+                return "NG4HW-VH26C-733KW-K6F98-J8CK4";
+            }
+            else if (osEdition.contains("Enterprise N")) {
+                return "JMNMF-RHW7P-DMY6X-RF3DR-X2BQT";
+            }
+            else if (osEdition.contains("Enterprise")) {
+                return "32JNW-9KQ84-P47T8-D8GGY-CWCK7";
+            }
+        }
+        else if (osEdition.contains("Windows Server 2012")) {
+            if (osEdition.contains("Windows Server 2012 N")) {
+                return "8N2M2-HWPGY-7PGT9-HGDD8-GVGGY";
+            }
+            else if (osEdition.contains("Single Language")) {
+                return "2WN2H-YGCQR-KFX6K-CD6TF-84YXQ";
+            }
+            else if (osEdition.contains("Country Specific")) {
+                return "4K36P-JN4VD-GDC6V-KDT89-DYFKP";
+            }
+            else if (osEdition.contains("Server Standard")) {
+                return "XC9B7-NBPP2-83J2H-RHMBY-92BT4";
+            }
+            else if (osEdition.contains("MultiPoint Standard")) {
+                return "HM7DN-YVMH3-46JC3-XYTG7-CYQJJ";
+            }
+            else if (osEdition.contains("MultiPoint Premium")) {
+                return "XNH6W-2V9GX-RGJ4K-Y8X6F-QGJ2G";
+            }
+            else if (osEdition.contains("Datacenter")) {
+                return "48HP8-DN98B-MYWDG-T2DCC-8W83P";
+            }
+            else {
+                return "BN3D2-R7TKB-3YPBD-8DRP2-27GG4";
+            }
+        }
+        else if (osEdition.contains("Windows 7")) {
+            if (osEdition.contains("Professional N")) {
+                return "MRPKT-YTG23-K7D7T-X2JMM-QY7MG";
+            }
+            if (osEdition.contains("Professional E")) {
+                return "W82YF-2Q76Y-63HXB-FGJG9-GF7QX";
+            }
+            else if (osEdition.contains("Professional")) {
+                return "FJ82H-XT6CR-J8D7P-XQJJ2-GPDD4";
+            }
+            else if (osEdition.contains("Enterprise N")) {
+                return "YDRBP-3D83W-TY26F-D46B2-XCKRJ";
+            }
+            else if (osEdition.contains("Enterprise E")) {
+                return "C29WB-22CC8-VJ326-GHFJW-H9DH4";
+            }
+            else if (osEdition.contains("Enterprise")) {
+                return "33PXH-7Y6KF-2VJC9-XBBR8-HVTHH";
+            }
+        }
+        else if (osEdition.contains("Windows Server 2008 R2")) {
+            if (osEdition.contains("for Itanium-based Systems")) {
+                return "GT63C-RJFQ3-4GMB6-BRFB9-CB83V";
+            }
+            else if (osEdition.contains("Datacenter")) {
+                return "74YFP-3QFB3-KQT8W-PMXWJ-7M648";
+            }
+            else if (osEdition.contains("Enterprise")) {
+                return "489J6-VHDMP-X63PK-3K798-CPX3Y";
+            }
+            else if (osEdition.contains("Standard")) {
+                return "YC6KT-GKW9T-YTKYR-T4X34-R7VHC";
+            }
+            else if (osEdition.contains("HPC Edition")) {
+                return "TT8MH-CG224-D3D7Q-498W2-9QCTX";
+            }
+            else if (osEdition.contains("Web")) {
+                return "6TPJF-RBVHG-WBW2R-86QPH-6RTM4";
+            }
+        }
+        else if (osEdition.contains("Windows Vista")) {
+            if (osEdition.contains("Business N")) {
+                return "HMBQG-8H2RH-C77VX-27R82-VMQBT";
+            }
+            else if (osEdition.contains("Business")) {
+                return "YFKBB-PQJJV-G996G-VWGXY-2V3X8";
+            }
+            else if (osEdition.contains("Enterprise N")) {
+                return "VTC42-BM838-43QHV-84HX6-XJXKV";
+            }
+            else if (osEdition.contains("Enterprise")) {
+                return "VKK3X-68KWM-X2YGT-QR4M6-4BWMV";
+            }
+        }
+        else if (osEdition.contains("Windows Server 2008")) {
+            if (osEdition.contains("for Itanium-Based Systems")) {
+                return "4DWFP-JF3DJ-B7DTH-78FJB-PDRHK";
+            }
+            else if (osEdition.contains("Datacenter without Hyper-V")) {
+                return "22XQ2-VRXRG-P8D42-K34TD-G3QQC";
+            }
+            else if (osEdition.contains("Datacenter")) {
+                return "7M67G-PC374-GR742-YH8V4-TCBY3";
+            }
+            else if (osEdition.contains("HPC")) {
+                return "RCTX3-KWVHP-BR6TB-RB6DM-6X7HP";
+            }
+            else if (osEdition.contains("Enterprise without Hyper-V")) {
+                return "39BXF-X8Q23-P2WWT-38T2F-G3FPG";
+            }
+            else if (osEdition.contains("Enterprise")) {
+                return "YQGMW-MPWTJ-34KDK-48M3W-X4Q6V";
+            }
+            else if (osEdition.contains("Standard without Hyper-V")) {
+                return "W7VD6-7JFBR-RX26B-YKQ3Y-6FFFJ";
+            }
+            else if (osEdition.contains("Standard")) {
+                return "TM24T-X9RMF-VWXK6-X8JC9-BFGM2";
+            }
+        }
+        else if (osEdition.contains("Windows Web Server 2008")) {
+            return "WYR28-R7TFJ-3X2YQ-YCY4H-M249D";
+        }
+        log.warn("Couldn't find a default product key for OS. Returning empty string.");
+        return "";
     }
 }

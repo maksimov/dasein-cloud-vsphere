@@ -119,6 +119,7 @@ public class TemplateCapabilities extends AbstractCapabilities<PrivateCloud> imp
         return false;
     }
 
+
     @Override
     public boolean supportsImageSharing() throws CloudException, InternalException {
         return false;
