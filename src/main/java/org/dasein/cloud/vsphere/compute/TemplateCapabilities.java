@@ -139,6 +139,10 @@ public class TemplateCapabilities extends AbstractCapabilities<PrivateCloud> imp
         return false;
     }
 
+    public boolean supportsImageRemoval() throws CloudException, InternalException {
+    	return true;
+    }
+
     @Override
     public NamingConstraints getImageNamingConstraints(){
         return NamingConstraints.getAlphaNumeric(1, 30).constrainedBy(new char[] {'-'}).lowerCaseOnly();
